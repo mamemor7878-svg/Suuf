@@ -1,0 +1,51 @@
+// ===== Gestion des terrains =====
+
+function publierTerrain(data, fichierTitre, photos) {
+  const vendeurId = auth.currentUser.uid;
+  const terrainRef = db.collection('terrains').doc();
+
+  const uploads = [];
+
+  if (fichierTitre) {
+    const refDoc = storage.ref(`documents/${terrainRef.id}/titre_foncier`);
+    uploads.push(refDoc.put(fichierTitre).then(snap => snap.ref.getDownloadURL()));
+  }
+
+  return Promise.all(uploads).then((urls) => {
+    return terrainRef.set({
+      vendeurId: vendeurId,
+      titre: data.titre,
+      superficie: data.superficie,
+      prix: data.prix,
+      statutJuridique: data.statutJuridique, // "titre_foncier" | "bail" | "non_loti"
+      localisation: data.localisation, // {lat, lng}
+      zone: data.zone,
+      documentsUrl: urls,
+      scoreConfiance: {
+        titreVerifie: false,
+        bornageGPS: false,
+        litiges: 0
+      },
+      statut: 'en_attente_moderation', // avant validation manuelle
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+}
+
+function rechercherTerrains(filtres = {}) {
+  let query = db.collection('terrains').where('statut', '==', 'disponible');
+
+  if (filtres.statutJuridique) {
+    query = query.where('statutJuridique', '==', filtres.statutJuridique);
+  }
+  if (filtres.zone) {
+    query = query.where('zone', '==', filtres.zone);
+  }
+
+  return query.get().then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
+}
+
+function getTerrain(terrainId) {
+  return db.collection('terrains').doc(terrainId).get()
+    .then(doc => ({ id: doc.id, ...doc.data() }));
+}

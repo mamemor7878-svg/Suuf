@@ -1,0 +1,14 @@
+{
+  "name": "Suuf — Terrains en toute confiance",
+  "short_name": "Suuf",
+  "description": "Mise en relation vendeurs et acheteurs de terrain au Sénégal, avec accès à des notaires vérifiés.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#EDE4D3",
+  "theme_color": "#C1622D",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

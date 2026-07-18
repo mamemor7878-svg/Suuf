@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estConnecte() {
+      return request.auth != null;
+    }
+    function estProprietaire(userId) {
+      return estConnecte() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if estConnecte();
+      allow create: if estProprietaire(userId);
+      allow update: if estProprietaire(userId);
+      allow delete: if false;
+    }
+
+    match /terrains/{terrainId} {
+      allow read: if true;
+      allow create: if estConnecte();
+      allow update: if estConnecte() && resource.data.vendeurId == request.auth.uid;
+      allow delete: if estConnecte() && resource.data.vendeurId == request.auth.uid;
+    }
+
+    match /conversations/{convId} {
+      allow read, update: if estConnecte() && request.auth.uid in resource.data.participants;
+      allow create: if estConnecte();
+
+      match /messages/{messageId} {
+        allow read: if estConnecte();
+        allow create: if estConnecte() && request.auth.uid == request.resource.data.expediteurId;
+      }
+    }
+
+    match /notaires/{notaireId} {
+      allow read: if true;
+      allow write: if false; // géré manuellement / back-office pour l'instant
+    }
+
+    match /demandesNotaire/{demandeId} {
+      allow read: if estConnecte() &&
+        (resource.data.acheteurId == request.auth.uid ||
+         resource.data.vendeurId == request.auth.uid ||
+         resource.data.notaireId == request.auth.uid);
+      allow create: if estConnecte();
+      allow update: if estConnecte();
+    }
+  }
+}
