@@ -6,9 +6,11 @@ function publierTerrain(data, fichierTitre, photos) {
 
   const uploads = [];
 
-  if (fichierTitre) {
+  if (fichierTitre && storage) {
     const refDoc = storage.ref(`documents/${terrainRef.id}/titre_foncier`);
     uploads.push(refDoc.put(fichierTitre).then(snap => snap.ref.getDownloadURL()));
+  } else if (fichierTitre && !storage) {
+    console.warn("Document non uploadé : Storage n'est pas encore activé (forfait Blaze requis).");
   }
 
   return Promise.all(uploads).then((urls) => {
