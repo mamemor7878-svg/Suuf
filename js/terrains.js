@@ -28,7 +28,7 @@ function publierTerrain(data, fichierTitre, photos) {
         bornageGPS: false,
         litiges: 0
       },
-      statut: 'en_attente_moderation', // avant validation manuelle
+      statut: 'disponible', // visible immédiatement (modération manuelle désactivée pour la phase de test)
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   });
