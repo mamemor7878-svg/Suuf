@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function estConnecte() {
+      return request.auth != null;
+    }
+
+    // Documents liés aux terrains (titre foncier, etc.)
+    // Chemin : documents/{terrainId}/titre_foncier
+    match /documents/{terrainId}/{fichier} {
+      allow read: if estConnecte();
+      allow write: if estConnecte()
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('application/pdf|image/.*');
+    }
+  }
+}
