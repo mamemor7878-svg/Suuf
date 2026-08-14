@@ -1,12 +1,10 @@
-// Remplace ces valeurs par celles de ta console Firebase
-// (Paramètres du projet > Vos applications > Config)
 const firebaseConfig = {
-  apiKey: "TON_API_KEY",
-  authDomain: "suuf-xxxxx.firebaseapp.com",
-  projectId: "suuf-xxxxx",
-  storageBucket: "suuf-xxxxx.appspot.com",
-  messagingSenderId: "TON_SENDER_ID",
-  appId: "TON_APP_ID"
+  apiKey: "AIzaSyBWNp8bvcWZrs3B0l_IOJiWOJzp4iK92ro",
+  authDomain: "suuf-5365e.firebaseapp.com",
+  projectId: "suuf-5365e",
+  storageBucket: "suuf-5365e.firebasestorage.app",
+  messagingSenderId: "928795399084",
+  appId: "1:928795399084:web:2881a89477ecf13fd1a009"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -14,8 +12,6 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Storage nécessite le forfait Blaze sur Firebase (pas encore activé).
-// On tente l'init sans bloquer le reste de l'app si ça échoue.
 let storage = null;
 try {
   storage = firebase.storage();
