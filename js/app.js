@@ -13,6 +13,10 @@ function goTo(screenName) {
   if (screenName === 'messages') chargerConversations();
   if (screenName === 'notaires') chargerNotaires();
   if (screenName === 'profil') chargerProfil();
+  if (screenName === 'publier') {
+    initCartePublier();
+    if (mapPublier) setTimeout(() => mapPublier.resize(), 50);
+  }
 }
 document.querySelectorAll('[data-go]').forEach(el => {
   el.addEventListener('click', () => goTo(el.dataset.go));
@@ -149,9 +153,15 @@ function ouvrirTerrain(id) {
   terrainCourantId = id;
   const sheet = document.getElementById('terrainSheet');
   sheet.innerHTML = '<div class="loader">Chargement…</div>';
+  document.getElementById('terrainMapContainer').style.display = 'none';
   goTo('terrain');
 
   getTerrain(id).then(t => {
+    if (!t || !t.id) {
+      sheet.innerHTML = '<div class="empty-state">Ce terrain est introuvable.</div>';
+      return;
+    }
+    afficherCarteTerrain(t.localisation);
     const sc = t.scoreConfiance || {};
     sheet.innerHTML = `
       <div class="zone">${escHTML(t.zone || '')} · ${escHTML(labelStatut(t.statutJuridique))}</div>
@@ -168,12 +178,15 @@ function ouvrirTerrain(id) {
       </div>
       <div class="desc">${escHTML(t.description || 'Aucune description fournie.')}</div>
       <div class="seller">
-        <div class="avatar">${initiales(t.vendeurNom || 'V')}</div>
+        <div class="avatar">${initiales(t.vendeurNom || 'Vendeur')}</div>
         <div>
           <div class="name">${escHTML(t.vendeurNom || 'Vendeur')}</div>
           <div class="sub">Vendeur · Prix : ${formaterFCFA(t.prix)}</div>
         </div>
       </div>`;
+  }).catch(err => {
+    sheet.innerHTML = `<div class="empty-state">Erreur de chargement : ${escHTML(err.message)}</div>`;
+    console.error('Erreur ouvrirTerrain :', err);
   });
 }
 
@@ -205,12 +218,13 @@ document.getElementById('formPublier').addEventListener('submit', (e) => {
     statutJuridique: document.getElementById('pStatut').value,
     prix: Number(document.getElementById('pPrix').value),
     description: document.getElementById('pDescription').value.trim(),
-    localisation: null // à compléter avec l'intégration carte
+    localisation: pinSelectionne // {lat, lng} choisi sur la carte, ou null si non renseigné
   };
   const fichier = document.getElementById('pFichier').files[0] || null;
 
   publierTerrain(data, fichier, []).then(() => {
     document.getElementById('formPublier').reset();
+    reinitialiserCartePublier();
     goTo('recherche');
   }).catch(err => {
     errEl.textContent = err.message;
