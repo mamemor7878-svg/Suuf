@@ -1,3 +1,5 @@
+integrations:
+     app_store_connect: Yoonu
 workflows:
   ios-workflow:
     name: Suuf iOS Build
