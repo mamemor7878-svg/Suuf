@@ -12,7 +12,7 @@ workflows:
         BUNDLE_ID: "io.github.mamemor7878-svg"
         XCODE_WORKSPACE: "ios/Suuf.xcworkspace"
         XCODE_SCHEME: "Suuf"
-      xcode: "16.4"
+      xcode: "26.4"
       cocoapods: default
     scripts:
       - name: Install CocoaPods dependencies
