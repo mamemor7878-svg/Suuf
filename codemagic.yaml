@@ -26,6 +26,10 @@ workflows:
             --create
       - name: Set up signing certificate
         script: keychain add-certificates
+      - name: Fix codesign keychain access (errSecInternalComponent)
+        script: |
+          KEYCHAIN=$(security default-keychain -d user | tr -d '"' | xargs)
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN"
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
