@@ -53,25 +53,67 @@
       <p class="lead" id="authLead">Connecte-toi pour explorer les terrains et contacter des notaires vérifiés.</p>
       <div class="error-msg" id="authError"></div>
 
-      <div id="registerFields" style="display:none;">
-        <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Nom complet</label>
-        <input id="regNom" type="text" placeholder="Ex : Awa Sow" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
-        <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Je suis</label>
-        <div class="role-picker">
-          <div class="role-opt on" data-role="acheteur">Acheteur</div>
-          <div class="role-opt" data-role="vendeur">Vendeur</div>
-          <div class="role-opt" data-role="notaire">Notaire</div>
+      <div class="role-picker" style="margin-bottom:22px;">
+        <div class="role-opt on" data-methode="email">Email</div>
+        <div class="role-opt" data-methode="telephone">Téléphone</div>
+      </div>
+
+      <!-- ----- Connexion / inscription par email ----- -->
+      <div id="authEmailFields">
+        <div id="registerFields" style="display:none;">
+          <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Nom complet</label>
+          <input id="regNom" type="text" placeholder="Ex : Awa Sow" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+          <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Je suis</label>
+          <div class="role-picker">
+            <div class="role-opt on" data-role="acheteur">Acheteur</div>
+            <div class="role-opt" data-role="vendeur">Vendeur</div>
+            <div class="role-opt" data-role="notaire">Notaire</div>
+          </div>
+        </div>
+
+        <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Email</label>
+        <input id="authEmail" type="email" placeholder="toi@exemple.com" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+        <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Mot de passe</label>
+        <input id="authPass" type="password" placeholder="••••••••" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:8px;">
+        <div style="text-align:right; margin-bottom:16px;" id="motDePasseOublieWrap">
+          <a href="#" id="motDePasseOublieLink" style="font-size:12px; color:var(--terre); font-weight:600;">Mot de passe oublié ?</a>
+        </div>
+
+        <button class="btn-p btn-full" id="authSubmit">Se connecter</button>
+        <div class="auth-switch">
+          <span id="authSwitchText">Pas encore de compte ?</span> <a href="#" id="authSwitchLink">Créer un compte</a>
         </div>
       </div>
 
-      <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Email</label>
-      <input id="authEmail" type="email" placeholder="toi@exemple.com" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
-      <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Mot de passe</label>
-      <input id="authPass" type="password" placeholder="••••••••" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+      <!-- ----- Connexion / inscription par téléphone ----- -->
+      <div id="authPhoneFields" style="display:none;">
+        <div id="phoneEtapeNumero">
+          <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Numéro de téléphone</label>
+          <input id="authTelephone" type="tel" placeholder="+221 77 123 45 67" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+          <button class="btn-p btn-full" id="btnEnvoyerCode">Recevoir le code par SMS</button>
+        </div>
 
-      <button class="btn-p btn-full" id="authSubmit">Se connecter</button>
-      <div class="auth-switch">
-        <span id="authSwitchText">Pas encore de compte ?</span> <a href="#" id="authSwitchLink">Créer un compte</a>
+        <div id="phoneEtapeCode" style="display:none;">
+          <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Code reçu par SMS</label>
+          <input id="authCode" type="tel" placeholder="123456" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+          <button class="btn-p btn-full" id="btnValiderCode">Valider le code</button>
+          <div class="auth-switch"><a href="#" id="renvoyerCodeLink">Renvoyer le code</a></div>
+        </div>
+
+        <div id="phoneEtapeProfil" style="display:none;">
+          <p class="lead" style="margin-bottom:20px;">Complète ton profil pour terminer ton inscription.</p>
+          <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Nom complet</label>
+          <input id="regNomTel" type="text" placeholder="Ex : Awa Sow" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+          <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Je suis</label>
+          <div class="role-picker" id="rolePickerTel">
+            <div class="role-opt on" data-role="acheteur">Acheteur</div>
+            <div class="role-opt" data-role="vendeur">Vendeur</div>
+            <div class="role-opt" data-role="notaire">Notaire</div>
+          </div>
+          <button class="btn-p btn-full" id="btnTerminerInscriptionTel" style="margin-top:16px;">Terminer l'inscription</button>
+        </div>
+
+        <div id="recaptcha-container"></div>
       </div>
     </div>
   </div>
@@ -236,6 +278,21 @@
       </p>
 
       <div style="height:1px; background:var(--ligne); margin:8px 0 20px;"></div>
+
+      <h3 style="font-size:15px; font-weight:600; margin-bottom:8px;">Modifier mon mot de passe</h3>
+      <p style="font-size:12.5px; line-height:1.6; opacity:.7; margin-bottom:16px;">
+        Uniquement si tu t'es inscrit(e) avec un email. Les comptes créés par téléphone n'ont pas de mot de passe.
+      </p>
+      <div class="error-msg" id="motDePasseError"></div>
+      <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Mot de passe actuel</label>
+      <input id="ancienMotDePasse" type="password" placeholder="••••••••" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+      <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Nouveau mot de passe</label>
+      <input id="nouveauMotDePasse" type="password" placeholder="•••••••• (6 caractères minimum)" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+      <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Confirmer le nouveau mot de passe</label>
+      <input id="confirmationMotDePasse" type="password" placeholder="••••••••" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+      <button type="button" class="btn-s btn-full" id="btnChangerMotDePasse">Mettre à jour le mot de passe</button>
+
+      <div style="height:1px; background:var(--ligne); margin:24px 0 20px;"></div>
 
       <h3 style="font-size:15px; font-weight:600; margin-bottom:8px;">Supprimer mon compte</h3>
       <p style="font-size:12.5px; line-height:1.6; opacity:.7; margin-bottom:16px;">
