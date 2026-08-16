@@ -177,11 +177,63 @@
       <div style="font-size:12px; opacity:.55;" id="profilEmail">—</div>
       <span class="tag tag-neutral" style="margin-top:8px;"><svg class="ic"><use href="#ic-user"/></svg><span id="profilRole">—</span></span>
     </div>
-    <div class="menu-item"><svg class="ic"><use href="#ic-folder"/></svg> Mes annonces <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
-    <div class="menu-item"><svg class="ic"><use href="#ic-handshake"/></svg> Mes demandes notaire <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
-    <div class="menu-item"><svg class="ic"><use href="#ic-bell"/></svg> Notifications <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
-    <div class="menu-item"><svg class="ic"><use href="#ic-lock"/></svg> Confidentialité <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
+    <div class="menu-item" data-go="mes-annonces"><svg class="ic"><use href="#ic-folder"/></svg> Mes annonces <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
+    <div class="menu-item" data-go="mes-demandes"><svg class="ic"><use href="#ic-handshake"/></svg> Mes demandes notaire <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
+    <div class="menu-item" data-go="notifications"><svg class="ic"><use href="#ic-bell"/></svg> Notifications <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
+    <div class="menu-item" data-go="confidentialite"><svg class="ic"><use href="#ic-lock"/></svg> Confidentialité <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
     <div class="menu-item" id="btnLogout"><svg class="ic"><use href="#ic-logout"/></svg> Se déconnecter <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
+  </div>
+
+  <!-- ===== MES ANNONCES ===== -->
+  <div class="screen" data-screen="mes-annonces">
+    <div class="topbar">
+      <div class="back" data-go="profil" style="width:34px;height:34px;border-radius:50%;background:var(--carte);border:1px solid var(--ligne);display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg class="ic"><use href="#ic-arrow-left"/></svg></div>
+      <h2>Mes annonces</h2><div style="width:34px;"></div>
+    </div>
+    <div class="list" id="listeMesAnnonces">
+      <div class="loader">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- ===== MES DEMANDES NOTAIRE ===== -->
+  <div class="screen" data-screen="mes-demandes">
+    <div class="topbar">
+      <div class="back" data-go="profil" style="width:34px;height:34px;border-radius:50%;background:var(--carte);border:1px solid var(--ligne);display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg class="ic"><use href="#ic-arrow-left"/></svg></div>
+      <h2>Mes demandes notaire</h2><div style="width:34px;"></div>
+    </div>
+    <div id="listeMesDemandes">
+      <div class="loader">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- ===== NOTIFICATIONS ===== -->
+  <div class="screen" data-screen="notifications">
+    <div class="topbar">
+      <div class="back" data-go="profil" style="width:34px;height:34px;border-radius:50%;background:var(--carte);border:1px solid var(--ligne);display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg class="ic"><use href="#ic-arrow-left"/></svg></div>
+      <h2>Notifications</h2><div style="width:34px;"></div>
+    </div>
+    <div id="listeNotifications">
+      <div class="loader">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- ===== CONFIDENTIALITE ===== -->
+  <div class="screen" data-screen="confidentialite">
+    <div class="topbar">
+      <div class="back" data-go="profil" style="width:34px;height:34px;border-radius:50%;background:var(--carte);border:1px solid var(--ligne);display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg class="ic"><use href="#ic-arrow-left"/></svg></div>
+      <h2>Confidentialité</h2><div style="width:34px;"></div>
+    </div>
+    <div class="form-block" style="padding-top:4px;">
+      <p style="font-size:13px; line-height:1.7; opacity:.8; margin-bottom:16px;">
+        Suuf collecte uniquement les informations nécessaires au fonctionnement du service : votre email et nom (compte), les annonces et documents que vous publiez, votre position sur la carte quand vous placez un terrain, et les messages échangés avec d'autres utilisateurs.
+      </p>
+      <p style="font-size:13px; line-height:1.7; opacity:.8; margin-bottom:16px;">
+        Ces données sont hébergées par Firebase (Google) et ne sont jamais vendues à des tiers. Les documents de titre foncier que vous téléversez ne sont visibles que par les personnes que vous contactez via l'app.
+      </p>
+      <p style="font-size:13px; line-height:1.7; opacity:.8; margin-bottom:16px;">
+        Vous pouvez demander la suppression de votre compte et de vos données à tout moment en nous écrivant à <strong>mamemor7878@gmail.com</strong>.
+      </p>
+    </div>
   </div>
 
   <div class="bottom-nav" id="bottomnav" style="display:none;">
