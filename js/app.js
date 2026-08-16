@@ -13,6 +13,9 @@ function goTo(screenName) {
   if (screenName === 'messages') chargerConversations();
   if (screenName === 'notaires') chargerNotaires();
   if (screenName === 'profil') chargerProfil();
+  if (screenName === 'mes-annonces') chargerMesAnnonces();
+  if (screenName === 'mes-demandes') chargerMesDemandes();
+  if (screenName === 'notifications') chargerNotifications();
   if (screenName === 'publier') {
     initCartePublier();
     if (mapPublier) setTimeout(() => mapPublier.resize(), 50);
@@ -324,5 +327,122 @@ function chargerProfil() {
     document.getElementById('profilEmail').textContent = user.email;
     document.getElementById('profilRole').textContent = { vendeur: 'Vendeur', acheteur: 'Acheteur', notaire: 'Notaire' }[data.role] || data.role || '—';
     document.getElementById('profilAvatar').textContent = initiales(data.nom || user.email);
+  });
+}
+
+function labelStatutDemande(statut) {
+  return {
+    en_attente: { texte: 'En attente', classe: 'tag-warn' },
+    accepte: { texte: 'Acceptée', classe: 'tag-ok' },
+    traite: { texte: 'Traitée', classe: 'tag-ok' }
+  }[statut] || { texte: statut || '—', classe: 'tag-neutral' };
+}
+
+// ===== MES ANNONCES =====
+function chargerMesAnnonces() {
+  const container = document.getElementById('listeMesAnnonces');
+  const user = auth.currentUser;
+  if (!user) return;
+  container.innerHTML = '<div class="loader">Chargement…</div>';
+
+  db.collection('terrains').where('vendeurId', '==', user.uid).get().then(snap => {
+    const terrains = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (terrains.length === 0) {
+      container.innerHTML = '<div class="empty-state">Vous n\'avez publié aucune annonce pour le moment.</div>';
+      return;
+    }
+    terrains.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    container.innerHTML = terrains.map(t => `
+      <div class="m-card" data-id="${t.id}">
+        <div class="m-thumb"><svg class="ic" style="width:34px;height:34px;"><use href="#ic-pin"/></svg></div>
+        <div class="m-info">
+          <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(labelStatut(t.statutJuridique))}</div>
+          <div class="m-title">${escHTML(t.titre || '')}</div>
+          <div class="m-row">
+            <span class="m-price">${formaterFCFA(t.prix)}</span>
+            <span class="tag ${t.statut === 'disponible' ? 'tag-ok' : 'tag-neutral'}">${t.statut === 'disponible' ? 'En ligne' : (t.statut || '—')}</span>
+          </div>
+        </div>
+      </div>`).join('');
+    container.querySelectorAll('.m-card').forEach(card => {
+      card.addEventListener('click', () => ouvrirTerrain(card.dataset.id));
+    });
+  }).catch(err => {
+    container.innerHTML = `<div class="empty-state">Erreur de chargement : ${escHTML(err.message)}</div>`;
+  });
+}
+
+// ===== MES DEMANDES NOTAIRE =====
+let unsubMesDemandes = null;
+function chargerMesDemandes() {
+  const container = document.getElementById('listeMesDemandes');
+  container.innerHTML = '<div class="loader">Chargement…</div>';
+  if (unsubMesDemandes) unsubMesDemandes();
+
+  unsubMesDemandes = mesDemandesNotaire((demandes) => {
+    if (demandes.length === 0) {
+      container.innerHTML = '<div class="empty-state">Aucune demande envoyée à un notaire pour le moment.</div>';
+      return;
+    }
+    demandes.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    Promise.all(demandes.map(d =>
+      Promise.all([
+        db.collection('terrains').doc(d.terrainId).get().then(doc => doc.data() || {}),
+        db.collection('notaires').doc(d.notaireId).get().then(doc => doc.data() || {})
+      ]).then(([terrain, notaire]) => ({ ...d, terrainTitre: terrain.titre, notaireNom: notaire.nom }))
+    )).then(items => {
+      const st = labelStatutDemande;
+      container.innerHTML = items.map(d => `
+        <div class="not-item">
+          <div class="avatar">${initiales(d.notaireNom || 'N')}</div>
+          <div class="info">
+            <div class="name">${escHTML(d.terrainTitre || 'Terrain')}</div>
+            <div class="ville">Notaire : ${escHTML(d.notaireNom || '—')}</div>
+            <span class="tag ${st(d.statut).classe}" style="margin-top:5px;">${st(d.statut).texte}</span>
+          </div>
+        </div>`).join('');
+    });
+  });
+}
+
+// ===== NOTIFICATIONS =====
+function chargerNotifications() {
+  const container = document.getElementById('listeNotifications');
+  const user = auth.currentUser;
+  if (!user) return;
+  container.innerHTML = '<div class="loader">Chargement…</div>';
+
+  Promise.all([
+    db.collection('demandesNotaire').where('acheteurId', '==', user.uid).get(),
+    db.collection('demandesNotaire').where('vendeurId', '==', user.uid).get()
+  ]).then(([snapAcheteur, snapVendeur]) => {
+    const parId = new Map();
+    snapAcheteur.docs.forEach(d => parId.set(d.id, { id: d.id, role: 'acheteur', ...d.data() }));
+    snapVendeur.docs.forEach(d => { if (!parId.has(d.id)) parId.set(d.id, { id: d.id, role: 'vendeur', ...d.data() }); });
+    const items = Array.from(parId.values());
+
+    if (items.length === 0) {
+      container.innerHTML = '<div class="empty-state">Aucune notification pour le moment.</div>';
+      return;
+    }
+    items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+    Promise.all(items.map(it =>
+      db.collection('terrains').doc(it.terrainId).get().then(doc => ({ ...it, terrainTitre: (doc.data() || {}).titre }))
+    )).then(itemsAvecTerrain => {
+      const st = labelStatutDemande;
+      container.innerHTML = itemsAvecTerrain.map(it => `
+        <div class="not-item">
+          <div class="avatar"><svg class="ic" style="width:18px;height:18px;color:#fff;"><use href="#ic-handshake"/></svg></div>
+          <div class="info">
+            <div class="name">${it.role === 'vendeur'
+              ? `Un acheteur a sollicité un notaire pour « ${escHTML(it.terrainTitre || 'votre terrain')} »`
+              : `Votre demande de notaire pour « ${escHTML(it.terrainTitre || 'ce terrain')} »`}</div>
+            <span class="tag ${st(it.statut).classe}" style="margin-top:6px;">${st(it.statut).texte}</span>
+          </div>
+        </div>`).join('');
+    });
+  }).catch(err => {
+    container.innerHTML = `<div class="empty-state">Erreur de chargement : ${escHTML(err.message)}</div>`;
   });
 }
