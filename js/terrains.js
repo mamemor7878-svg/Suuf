@@ -51,3 +51,34 @@ function getTerrain(terrainId) {
   return db.collection('terrains').doc(terrainId).get()
     .then(doc => ({ id: doc.id, ...doc.data() }));
 }
+
+function modifierTerrain(terrainId, data, fichierTitre) {
+  const terrainRef = db.collection('terrains').doc(terrainId);
+  const miseAJour = {
+    titre: data.titre,
+    zone: data.zone,
+    superficie: data.superficie,
+    statutJuridique: data.statutJuridique,
+    prix: data.prix,
+    description: data.description,
+    localisation: data.localisation
+  };
+
+  if (fichierTitre && storage) {
+    const refDoc = storage.ref(`documents/${terrainId}/titre_foncier`);
+    return refDoc.put(fichierTitre).then(snap => snap.ref.getDownloadURL()).then(url => {
+      miseAJour.documentsUrl = [url];
+      return terrainRef.update(miseAJour);
+    });
+  }
+
+  return terrainRef.update(miseAJour);
+}
+
+function supprimerTerrain(terrainId) {
+  const supprimerDoc = storage
+    ? storage.ref(`documents/${terrainId}/titre_foncier`).delete().catch(() => {})
+    : Promise.resolve();
+
+  return supprimerDoc.then(() => db.collection('terrains').doc(terrainId).delete());
+}
