@@ -40,6 +40,7 @@
   <symbol id="ic-handshake" viewBox="0 0 24 24"><path d="M2.5,11 L7,7.3 L10,9.4 L13,7.3 L17.5,11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6,10.5 L10.2,14.6 a1.4,1.4 0 0 0 2,-2 L9,9.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.2,12.4 L14.8,14.8 a1.3,1.3 0 0 0 1.8,-1.9 L13.6,10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="2.5" y1="11" x2="2.5" y2="15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="21.5" y1="11" x2="21.5" y2="15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
   <symbol id="ic-pin" viewBox="0 0 24 24"><path d="M12,21 C12,21 5.5,14.3 5.5,9.6 A6.5,6.5 0 0 1 18.5,9.6 C18.5,14.3 12,21 12,21 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.1" fill="currentColor"/></symbol>
   <symbol id="ic-send" viewBox="0 0 24 24"><path d="M4,12 L20,4 L14,20 L11,13 L4,12 Z" fill="currentColor"/></symbol>
+  <symbol id="ic-trash" viewBox="0 0 24 24"><path d="M5,7 H19 M9,7 V5 a1,1 0 0 1 1,-1 h4 a1,1 0 0 1 1,1 v2 M7,7 L7.7,19 a1.5,1.5 0 0 0 1.5,1.4 h5.6 a1.5,1.5 0 0 0 1.5,-1.4 L17,7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="10.5" x2="10.3" y2="16.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="14" y1="10.5" x2="13.7" y2="16.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
 </defs>
 </svg>
 
@@ -107,7 +108,7 @@
 
   <!-- ===== PUBLIER ===== -->
   <div class="screen" data-screen="publier">
-    <div class="topbar"><h2>Publier un terrain</h2><div></div></div>
+    <div class="topbar"><h2 id="publierTitre">Publier un terrain</h2><div></div></div>
     <div class="error-msg" id="publierError"></div>
     <form class="form-block" id="formPublier">
       <label>Titre de l'annonce</label>
@@ -135,7 +136,7 @@
         <span id="pFichierLabel">Glisser un fichier ou parcourir</span>
         <input type="file" id="pFichier" accept="application/pdf,image/*">
       </div>
-      <button type="submit" class="btn-p btn-full">Publier l'annonce</button>
+      <button type="submit" class="btn-p btn-full" id="publierSubmitBtn">Publier l'annonce</button>
     </form>
   </div>
 
@@ -231,8 +232,19 @@
         Ces données sont hébergées par Firebase (Google) et ne sont jamais vendues à des tiers. Les documents de titre foncier que vous téléversez ne sont visibles que par les personnes que vous contactez via l'app.
       </p>
       <p style="font-size:13px; line-height:1.7; opacity:.8; margin-bottom:16px;">
-        Vous pouvez demander la suppression de votre compte et de vos données à tout moment en nous écrivant à <strong>mamemor7878@gmail.com</strong>.
+        Vous pouvez aussi supprimer votre compte vous-même ci-dessous, ou nous écrire à <strong>mamemor7878@gmail.com</strong>.
       </p>
+
+      <div style="height:1px; background:var(--ligne); margin:8px 0 20px;"></div>
+
+      <h3 style="font-size:15px; font-weight:600; margin-bottom:8px;">Supprimer mon compte</h3>
+      <p style="font-size:12.5px; line-height:1.6; opacity:.7; margin-bottom:16px;">
+        Action irréversible : votre profil, vos annonces et vos documents seront définitivement supprimés. Les messages déjà envoyés peuvent rester visibles pour vos interlocuteurs.
+      </p>
+      <div class="error-msg" id="suppressionError"></div>
+      <label style="font-size:12.5px; font-weight:600; opacity:.7; display:block; margin-bottom:7px;">Confirmez votre mot de passe</label>
+      <input id="suppressionPass" type="password" placeholder="••••••••" style="width:100%; background:var(--carte); border:1px solid var(--ligne); border-radius:12px; padding:12px 14px; font-size:13.5px; margin-bottom:16px;">
+      <button type="button" class="btn-s btn-full" id="btnSupprimerCompte" style="background:#a83a2c;">Supprimer définitivement mon compte</button>
     </div>
   </div>
 
