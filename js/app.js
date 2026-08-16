@@ -4,7 +4,9 @@ let profilCourant = null;
 let terrainCourantId = null;
 let conversationCouranteId = null;
 let roleInscription = 'acheteur';
+let roleInscriptionTel = 'acheteur';
 let modeAuth = 'connexion'; // 'connexion' | 'inscription'
+let methodeAuth = 'email'; // 'email' | 'telephone'
 let terrainEnEditionId = null; // id du terrain en cours de modification, ou null si on publie une nouvelle annonce
 let entreeParEdition = false; // évite que goTo('publier') réinitialise le formulaire quand on arrive via "Modifier"
 
@@ -36,11 +38,28 @@ document.querySelectorAll('[data-go]').forEach(el => {
 });
 
 // ===== AUTH =====
-document.querySelectorAll('.role-opt').forEach(el => {
+document.querySelectorAll('.role-picker .role-opt[data-role]').forEach(el => {
   el.addEventListener('click', () => {
-    document.querySelectorAll('.role-opt').forEach(o => o.classList.remove('on'));
+    const picker = el.closest('.role-picker');
+    picker.querySelectorAll('.role-opt').forEach(o => o.classList.remove('on'));
     el.classList.add('on');
-    roleInscription = el.dataset.role;
+    if (picker.id === 'rolePickerTel') {
+      roleInscriptionTel = el.dataset.role;
+    } else {
+      roleInscription = el.dataset.role;
+    }
+  });
+});
+
+// bascule Email / Téléphone sur l'écran d'authentification
+document.querySelectorAll('.role-opt[data-methode]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.role-opt[data-methode]').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+    methodeAuth = el.dataset.methode;
+    document.getElementById('authEmailFields').style.display = methodeAuth === 'email' ? 'block' : 'none';
+    document.getElementById('authPhoneFields').style.display = methodeAuth === 'telephone' ? 'block' : 'none';
+    document.getElementById('authError').classList.remove('show');
   });
 });
 
@@ -52,6 +71,116 @@ document.getElementById('authSwitchLink').addEventListener('click', (e) => {
   document.getElementById('authSubmit').textContent = estInscription ? 'Créer mon compte' : 'Se connecter';
   document.getElementById('authSwitchText').textContent = estInscription ? 'Déjà un compte ?' : 'Pas encore de compte ?';
   document.getElementById('authSwitchLink').textContent = estInscription ? 'Se connecter' : 'Créer un compte';
+  document.getElementById('motDePasseOublieWrap').style.display = estInscription ? 'none' : 'block';
+});
+
+document.getElementById('motDePasseOublieLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const errEl = document.getElementById('authError');
+  errEl.style.color = '';
+  errEl.classList.remove('show');
+
+  if (!email) {
+    errEl.textContent = 'Merci de renseigner ton email pour recevoir le lien de réinitialisation.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  reinitialiserMotDePasse(email).then(() => {
+    errEl.style.color = '#2c8a4b';
+    errEl.textContent = 'Un email de réinitialisation a été envoyé à ' + email + '.';
+    errEl.classList.add('show');
+  }).catch(err => {
+    errEl.style.color = '';
+    errEl.textContent = traduireErreurFirebase(err.code);
+    errEl.classList.add('show');
+  });
+});
+
+// ----- Connexion / inscription par téléphone -----
+document.getElementById('btnEnvoyerCode').addEventListener('click', () => {
+  const numero = document.getElementById('authTelephone').value.trim();
+  const errEl = document.getElementById('authError');
+  errEl.style.color = '';
+  errEl.classList.remove('show');
+
+  if (!numero) {
+    errEl.textContent = 'Merci de renseigner un numéro de téléphone (avec l\'indicatif, ex : +221...).';
+    errEl.classList.add('show');
+    return;
+  }
+
+  envoyerCodeTelephone(numero).then(() => {
+    document.getElementById('phoneEtapeNumero').style.display = 'none';
+    document.getElementById('phoneEtapeCode').style.display = 'block';
+  }).catch(err => {
+    errEl.textContent = traduireErreurFirebase(err.code);
+    errEl.classList.add('show');
+  });
+});
+
+document.getElementById('renvoyerCodeLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  const numero = document.getElementById('authTelephone').value.trim();
+  const errEl = document.getElementById('authError');
+  if (!numero) return;
+  envoyerCodeTelephone(numero).then(() => {
+    errEl.style.color = '#2c8a4b';
+    errEl.textContent = 'Un nouveau code a été envoyé par SMS.';
+    errEl.classList.add('show');
+  }).catch(err => {
+    errEl.style.color = '';
+    errEl.textContent = traduireErreurFirebase(err.code);
+    errEl.classList.add('show');
+  });
+});
+
+document.getElementById('btnValiderCode').addEventListener('click', () => {
+  const code = document.getElementById('authCode').value.trim();
+  const errEl = document.getElementById('authError');
+  errEl.style.color = '';
+  errEl.classList.remove('show');
+
+  if (!code) {
+    errEl.textContent = 'Merci de saisir le code reçu par SMS.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  // La suite (redirection vers le profil à compléter ou vers l'app) est gérée
+  // automatiquement par auth.onAuthStateChanged une fois la connexion confirmée.
+  validerCodeTelephone(code).catch(err => {
+    errEl.textContent = err.code ? traduireErreurFirebase(err.code) : (err.message || 'Code incorrect.');
+    errEl.classList.add('show');
+  });
+});
+
+document.getElementById('btnTerminerInscriptionTel').addEventListener('click', () => {
+  const nom = document.getElementById('regNomTel').value.trim();
+  const errEl = document.getElementById('authError');
+  errEl.style.color = '';
+  errEl.classList.remove('show');
+
+  if (!nom) {
+    errEl.textContent = 'Merci de renseigner ton nom complet.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  completerProfilTelephone(nom, roleInscriptionTel).then(() => {
+    document.getElementById('regNomTel').value = '';
+    document.getElementById('authTelephone').value = '';
+    document.getElementById('authCode').value = '';
+    document.getElementById('phoneEtapeProfil').style.display = 'none';
+    document.getElementById('phoneEtapeNumero').style.display = 'block';
+    document.getElementById('phoneEtapeCode').style.display = 'none';
+    document.getElementById('bottomnav').style.display = 'flex';
+    goTo('recherche');
+  }).catch(err => {
+    errEl.textContent = traduireErreurFirebase(err.code);
+    errEl.classList.add('show');
+  });
 });
 
 document.getElementById('authSubmit').addEventListener('click', () => {
@@ -93,11 +222,36 @@ document.getElementById('btnLogout').addEventListener('click', () => deconnecter
 auth.onAuthStateChanged((user) => {
   const bottomnav = document.getElementById('bottomnav');
   if (user) {
-    bottomnav.style.display = 'flex';
-    goTo('recherche');
+    // compte téléphone : on vérifie qu'un profil Firestore existe déjà,
+    // sinon on affiche l'étape "complète ton profil" avant d'entrer dans l'app.
+    if (user.phoneNumber && !user.email) {
+      db.collection('users').doc(user.uid).get().then(doc => {
+        if (doc.exists) {
+          bottomnav.style.display = 'flex';
+          goTo('recherche');
+        } else {
+          bottomnav.style.display = 'none';
+          goTo('auth');
+          document.querySelectorAll('.role-opt[data-methode]').forEach(o => o.classList.remove('on'));
+          const ongletTel = document.querySelector('.role-opt[data-methode="telephone"]');
+          if (ongletTel) ongletTel.classList.add('on');
+          document.getElementById('authEmailFields').style.display = 'none';
+          document.getElementById('authPhoneFields').style.display = 'block';
+          document.getElementById('phoneEtapeNumero').style.display = 'none';
+          document.getElementById('phoneEtapeCode').style.display = 'none';
+          document.getElementById('phoneEtapeProfil').style.display = 'block';
+        }
+      });
+    } else {
+      bottomnav.style.display = 'flex';
+      goTo('recherche');
+    }
   } else {
     bottomnav.style.display = 'none';
     goTo('auth');
+    document.getElementById('phoneEtapeNumero').style.display = 'block';
+    document.getElementById('phoneEtapeCode').style.display = 'none';
+    document.getElementById('phoneEtapeProfil').style.display = 'none';
   }
 });
 
@@ -503,6 +657,54 @@ function chargerNotifications() {
   });
 }
 
+// ===== MODIFIER LE MOT DE PASSE =====
+document.getElementById('btnChangerMotDePasse').addEventListener('click', () => {
+  const user = auth.currentUser;
+  const errEl = document.getElementById('motDePasseError');
+  errEl.style.color = '';
+  errEl.classList.remove('show');
+
+  if (!user.email) {
+    errEl.textContent = "Cette fonctionnalité est réservée aux comptes créés avec un email. Les comptes créés par téléphone n'ont pas de mot de passe.";
+    errEl.classList.add('show');
+    return;
+  }
+
+  const ancien = document.getElementById('ancienMotDePasse').value;
+  const nouveau = document.getElementById('nouveauMotDePasse').value;
+  const confirmation = document.getElementById('confirmationMotDePasse').value;
+
+  if (!ancien || !nouveau || !confirmation) {
+    errEl.textContent = 'Merci de remplir tous les champs.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (nouveau.length < 6) {
+    errEl.textContent = 'Le nouveau mot de passe doit contenir au moins 6 caractères.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (nouveau !== confirmation) {
+    errEl.textContent = 'La confirmation ne correspond pas au nouveau mot de passe.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  changerMotDePasse(ancien, nouveau).then(() => {
+    errEl.style.color = '#2c8a4b';
+    errEl.textContent = 'Mot de passe mis à jour avec succès.';
+    errEl.classList.add('show');
+    document.getElementById('ancienMotDePasse').value = '';
+    document.getElementById('nouveauMotDePasse').value = '';
+    document.getElementById('confirmationMotDePasse').value = '';
+  }).catch(err => {
+    errEl.textContent = err.code === 'auth/wrong-password'
+      ? 'Mot de passe actuel incorrect.'
+      : traduireErreurFirebase(err.code);
+    errEl.classList.add('show');
+  });
+});
+
 // ===== SUPPRESSION DE COMPTE =====
 document.getElementById('btnSupprimerCompte').addEventListener('click', () => {
   const user = auth.currentUser;
@@ -510,26 +712,40 @@ document.getElementById('btnSupprimerCompte').addEventListener('click', () => {
   const passInput = document.getElementById('suppressionPass');
   errEl.classList.remove('show');
 
-  const pass = passInput.value;
-  if (!pass) {
-    errEl.textContent = 'Merci de confirmer votre mot de passe.';
-    errEl.classList.add('show');
-    return;
-  }
+  const supprimerDonneesEtCompte = () => {
+    return db.collection('terrains').where('vendeurId', '==', user.uid).get()
+      .then(snap => Promise.all(snap.docs.map(d => supprimerTerrain(d.id))))
+      .then(() => db.collection('users').doc(user.uid).delete())
+      .then(() => user.delete());
+  };
+
   if (!confirm('Supprimer définitivement votre compte Suuf ? Cette action est irréversible.')) return;
 
-  const credential = firebase.auth.EmailAuthProvider.credential(user.email, pass);
+  if (user.email) {
+    const pass = passInput.value;
+    if (!pass) {
+      errEl.textContent = 'Merci de confirmer votre mot de passe.';
+      errEl.classList.add('show');
+      return;
+    }
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, pass);
 
-  user.reauthenticateWithCredential(credential)
-    .then(() => db.collection('terrains').where('vendeurId', '==', user.uid).get())
-    .then(snap => Promise.all(snap.docs.map(d => supprimerTerrain(d.id))))
-    .then(() => db.collection('users').doc(user.uid).delete())
-    .then(() => user.delete())
-    .catch(err => {
-      errEl.textContent = err.code === 'auth/wrong-password'
-        ? 'Mot de passe incorrect.'
+    user.reauthenticateWithCredential(credential)
+      .then(supprimerDonneesEtCompte)
+      .catch(err => {
+        errEl.textContent = err.code === 'auth/wrong-password'
+          ? 'Mot de passe incorrect.'
+          : traduireErreurFirebase(err.code);
+        errEl.classList.add('show');
+      })
+      .finally(() => { passInput.value = ''; });
+  } else {
+    // compte téléphone : pas de mot de passe à vérifier, la session récente suffit
+    supprimerDonneesEtCompte().catch(err => {
+      errEl.textContent = err.code === 'auth/requires-recent-login'
+        ? 'Merci de te déconnecter puis de te reconnecter par téléphone avant de supprimer ton compte.'
         : traduireErreurFirebase(err.code);
       errEl.classList.add('show');
-    })
-    .finally(() => { passInput.value = ''; });
+    });
+  }
 });
