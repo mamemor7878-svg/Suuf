@@ -1,4 +1,4 @@
-const CACHE_NAME = 'suuf-v2';
+const CACHE_NAME = 'suuf-v3';
 const URLS_TO_CACHE = [
   './',
   './index.html',
@@ -27,8 +27,16 @@ self.addEventListener('fetch', (event) => {
   // Firebase, tuiles OSM etc. passent toujours par le réseau.
   if (event.request.method !== 'GET') return;
 
+  // Réseau d'abord (pour toujours avoir la dernière version en ligne),
+  // secours sur le cache uniquement si hors-ligne ou requête échouée.
   event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        const copie = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copie));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 
