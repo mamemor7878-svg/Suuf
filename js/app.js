@@ -5,6 +5,8 @@ let terrainCourantId = null;
 let conversationCouranteId = null;
 let roleInscription = 'acheteur';
 let modeAuth = 'connexion'; // 'connexion' | 'inscription'
+let terrainEnEditionId = null; // id du terrain en cours de modification, ou null si on publie une nouvelle annonce
+let entreeParEdition = false; // évite que goTo('publier') réinitialise le formulaire quand on arrive via "Modifier"
 
 function goTo(screenName) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === screenName));
@@ -18,6 +20,14 @@ function goTo(screenName) {
   if (screenName === 'notifications') chargerNotifications();
   if (screenName === 'publier') {
     initCartePublier();
+    if (!entreeParEdition) {
+      terrainEnEditionId = null;
+      document.getElementById('publierTitre').textContent = 'Publier un terrain';
+      document.getElementById('publierSubmitBtn').textContent = "Publier l'annonce";
+      document.getElementById('formPublier').reset();
+      reinitialiserCartePublier();
+    }
+    entreeParEdition = false;
     if (mapPublier) setTimeout(() => mapPublier.resize(), 50);
   }
 }
@@ -224,11 +234,17 @@ document.getElementById('formPublier').addEventListener('submit', (e) => {
     localisation: pinSelectionne // {lat, lng} choisi sur la carte, ou null si non renseigné
   };
   const fichier = document.getElementById('pFichier').files[0] || null;
+  const idEnEdition = terrainEnEditionId;
 
-  publierTerrain(data, fichier, []).then(() => {
+  const action = idEnEdition
+    ? modifierTerrain(idEnEdition, data, fichier)
+    : publierTerrain(data, fichier, []);
+
+  action.then(() => {
     document.getElementById('formPublier').reset();
     reinitialiserCartePublier();
-    goTo('recherche');
+    terrainEnEditionId = null;
+    goTo(idEnEdition ? 'mes-annonces' : 'recherche');
   }).catch(err => {
     errEl.textContent = err.message;
     errEl.classList.add('show');
@@ -362,13 +378,53 @@ function chargerMesAnnonces() {
             <span class="m-price">${formaterFCFA(t.prix)}</span>
             <span class="tag ${t.statut === 'disponible' ? 'tag-ok' : 'tag-neutral'}">${t.statut === 'disponible' ? 'En ligne' : (t.statut || '—')}</span>
           </div>
+          <div class="m-actions">
+            <button type="button" class="m-action-btn" data-action="editer" data-id="${t.id}"><svg class="ic"><use href="#ic-pencil"/></svg>Modifier</button>
+            <button type="button" class="m-action-btn m-action-danger" data-action="supprimer" data-id="${t.id}"><svg class="ic"><use href="#ic-trash"/></svg>Supprimer</button>
+          </div>
         </div>
       </div>`).join('');
     container.querySelectorAll('.m-card').forEach(card => {
       card.addEventListener('click', () => ouvrirTerrain(card.dataset.id));
     });
+    container.querySelectorAll('[data-action="editer"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        ouvrirEditionTerrain(btn.dataset.id);
+      });
+    });
+    container.querySelectorAll('[data-action="supprimer"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!confirm('Supprimer définitivement cette annonce ?')) return;
+        supprimerTerrain(btn.dataset.id).then(() => chargerMesAnnonces());
+      });
+    });
   }).catch(err => {
     container.innerHTML = `<div class="empty-state">Erreur de chargement : ${escHTML(err.message)}</div>`;
+  });
+}
+
+// ===== MODIFIER UNE ANNONCE =====
+function ouvrirEditionTerrain(id) {
+  getTerrain(id).then(t => {
+    if (!t || !t.id) return;
+    entreeParEdition = true;
+    terrainEnEditionId = id;
+    goTo('publier');
+
+    document.getElementById('pTitre').value = t.titre || '';
+    document.getElementById('pZone').value = t.zone || '';
+    document.getElementById('pSuperficie').value = t.superficie || '';
+    document.getElementById('pStatut').value = t.statutJuridique || 'titre_foncier';
+    document.getElementById('pPrix').value = t.prix || '';
+    document.getElementById('pDescription').value = t.description || '';
+    document.getElementById('publierTitre').textContent = "Modifier l'annonce";
+    document.getElementById('publierSubmitBtn').textContent = 'Enregistrer les modifications';
+
+    if (t.localisation && typeof t.localisation.lat === 'number') {
+      setTimeout(() => placerPinPublier(t.localisation.lat, t.localisation.lng), 200);
+    }
   });
 }
 
@@ -446,3 +502,34 @@ function chargerNotifications() {
     container.innerHTML = `<div class="empty-state">Erreur de chargement : ${escHTML(err.message)}</div>`;
   });
 }
+
+// ===== SUPPRESSION DE COMPTE =====
+document.getElementById('btnSupprimerCompte').addEventListener('click', () => {
+  const user = auth.currentUser;
+  const errEl = document.getElementById('suppressionError');
+  const passInput = document.getElementById('suppressionPass');
+  errEl.classList.remove('show');
+
+  const pass = passInput.value;
+  if (!pass) {
+    errEl.textContent = 'Merci de confirmer votre mot de passe.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (!confirm('Supprimer définitivement votre compte Suuf ? Cette action est irréversible.')) return;
+
+  const credential = firebase.auth.EmailAuthProvider.credential(user.email, pass);
+
+  user.reauthenticateWithCredential(credential)
+    .then(() => db.collection('terrains').where('vendeurId', '==', user.uid).get())
+    .then(snap => Promise.all(snap.docs.map(d => supprimerTerrain(d.id))))
+    .then(() => db.collection('users').doc(user.uid).delete())
+    .then(() => user.delete())
+    .catch(err => {
+      errEl.textContent = err.code === 'auth/wrong-password'
+        ? 'Mot de passe incorrect.'
+        : traduireErreurFirebase(err.code);
+      errEl.classList.add('show');
+    })
+    .finally(() => { passInput.value = ''; });
+});
