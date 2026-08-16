@@ -91,6 +91,16 @@ button{font-family:inherit;}
 .m-price{font-family:'Fraunces',serif; font-weight:600; color:var(--terre-fonce); font-size:14.5px;}
 .empty-state{padding:60px 30px; text-align:center; opacity:.5; font-size:13.5px;}
 
+.m-actions{display:flex; gap:8px; margin-top:10px;}
+.m-action-btn{
+  flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+  background:var(--sable-clair); border:1px solid var(--ligne); border-radius:10px;
+  padding:8px; font-size:11.5px; font-weight:600; color:var(--anthracite); cursor:pointer;
+  font-family:'General Sans';
+}
+.m-action-btn svg.ic{width:13px; height:13px;}
+.m-action-danger{color:#a83a2c; border-color:rgba(168,58,44,.3); background:rgba(168,58,44,.06);}
+
 /* ===== fiche terrain ===== */
 .hero-img{ height:230px; background:linear-gradient(160deg,#4a5a3f,#8a8354); position:relative; }
 .hero-img .back{
