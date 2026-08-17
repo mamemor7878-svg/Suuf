@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Suuf — La terre en toute confiance</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#C1622D">
@@ -10,138 +10,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=General+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css"/>
-
-<style id="suuf-safe-visual-refonte">
-:root{
-  --suuf-orange:#C9682F;
-  --suuf-orange-dark:#A94D20;
-  --suuf-cream:#F7F2E8;
-  --suuf-card:#FCF9F2;
-  --suuf-ink:#302D29;
-  --suuf-muted:#817A72;
-  --suuf-line:#DED7CB;
-  --suuf-green:#55704F;
-  --suuf-green-soft:#E7EEE2;
-  --suuf-shadow:0 5px 18px rgba(48,45,41,.055);
-}
-
-/* Couleurs uniquement — aucune modification de position, hauteur ou largeur */
-html,body{background:var(--suuf-cream)!important;color:var(--suuf-ink)!important;}
-.screen{background:var(--suuf-cream)!important;}
-.serif,h1,h2,h3,.topbar h2{font-family:"Fraunces",Georgia,serif!important;color:var(--suuf-ink)!important;}
-button,input,select,textarea{font-family:"General Sans",system-ui,sans-serif!important;}
-
-/* Barre de navigation : même structure, nouveau rendu */
-.bottom-nav{
-  background:#302D29!important;
-  border:1px solid rgba(255,255,255,.06)!important;
-  box-shadow:0 8px 25px rgba(48,45,41,.18)!important;
-}
-.nav-item{color:#A59E95!important;}
-.nav-item.active{color:#fff!important;}
-.nav-item.active .ic{color:var(--suuf-orange)!important;}
-
-/* Boutons */
-.btn-p{
-  background:var(--suuf-orange)!important;
-  border-color:var(--suuf-orange)!important;
-  color:#fff!important;
-}
-.btn-p:hover{background:var(--suuf-orange-dark)!important;}
-.btn-s{
-  background:var(--suuf-card)!important;
-  border-color:var(--suuf-line)!important;
-  color:var(--suuf-ink)!important;
-}
-
-/* Champs */
-input,select,textarea{
-  background:var(--suuf-card)!important;
-  color:var(--suuf-ink)!important;
-  border-color:var(--suuf-line)!important;
-}
-input:focus,select:focus,textarea:focus{
-  border-color:var(--suuf-orange)!important;
-  outline:none!important;
-  box-shadow:0 0 0 3px rgba(201,104,47,.08)!important;
-}
-
-/* Recherche et filtres : conserver dimensions existantes */
-.search-bar{
-  background:var(--suuf-card)!important;
-  border-color:var(--suuf-line)!important;
-  color:#9A938A!important;
-}
-.chip{
-  background:var(--suuf-card)!important;
-  border-color:var(--suuf-line)!important;
-  color:var(--suuf-ink)!important;
-}
-.chip.on{
-  background:var(--suuf-orange)!important;
-  border-color:var(--suuf-orange)!important;
-  color:#fff!important;
-}
-
-/* Cartes dynamiques : rendu premium sans changer leur géométrie */
-.terrain-card,.terrain-item,.annonce-card,.property-card,
-.conversation-card,.notaire-card,
-#listeTerrains > *:not(.loader),
-#listeConversations > *:not(.loader),
-#listeNotaires > *:not(.loader),
-#listeMesAnnonces > *:not(.loader),
-#listeMesDemandes > *:not(.loader){
-  background:var(--suuf-card)!important;
-  border-color:var(--suuf-line)!important;
-  box-shadow:var(--suuf-shadow)!important;
-}
-
-/* Badges de confiance */
-.tag-verified,.verified,.tag-success{
-  background:var(--suuf-green-soft)!important;
-  color:var(--suuf-green)!important;
-}
-
-/* En-têtes / boutons ronds */
-.icon-btn,.back{
-  background:var(--suuf-card)!important;
-  border-color:var(--suuf-line)!important;
-}
-
-/* Fiche terrain */
-.hero-img{
-  background-color:#B98A60!important;
-}
-.score-float{
-  background:rgba(252,249,242,.95)!important;
-  border-color:var(--suuf-line)!important;
-  color:var(--suuf-green)!important;
-}
-.sheet{
-  background:var(--suuf-card)!important;
-  border-color:var(--suuf-line)!important;
-}
-
-/* Profil : seulement les couleurs, aucune structure déplacée */
-.profil-head{
-  background:linear-gradient(145deg,#C9682F,#A95125)!important;
-  color:#fff!important;
-}
-.profil-head [id="profilEmail"]{color:rgba(255,255,255,.78)!important;}
-.profil-head .tag{
-  background:var(--suuf-green-soft)!important;
-  color:var(--suuf-green)!important;
-}
-.menu-item{border-color:var(--suuf-line)!important;}
-
-/* États */
-.loader{color:var(--suuf-muted)!important;}
-.error-msg{
-  background:#F6E5E0!important;
-  color:#943B2E!important;
-}
-</style>
-
 <script src="vendor/leaflet/leaflet.js"></script>
 </head>
 <body>
