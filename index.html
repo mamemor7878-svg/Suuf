@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Suuf — La terre en toute confiance</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#C1622D">
@@ -10,6 +10,443 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=General+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css"/>
+
+<style id="suuf-refonte">
+/* =========================================================
+   SUUF — REFONTE VISUELLE PREMIUM
+   Direction: immobilier sénégalais / confiance foncière
+   ========================================================= */
+:root{
+  --suuf-orange:#C9682F;
+  --suuf-orange-dark:#A94D20;
+  --suuf-cream:#F7F2E8;
+  --suuf-card:#FCF9F2;
+  --suuf-ink:#302D29;
+  --suuf-muted:#817A72;
+  --suuf-line:#DED7CB;
+  --suuf-green:#55704F;
+  --suuf-green-soft:#E7EEE2;
+  --suuf-gold:#B58A3C;
+  --suuf-shadow:0 10px 30px rgba(48,45,41,.07);
+  --suuf-radius:20px;
+}
+
+*{box-sizing:border-box}
+html,body{background:var(--suuf-cream)!important;color:var(--suuf-ink)!important}
+body{
+  font-family:"General Sans",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  letter-spacing:-.01em;
+}
+.serif,h1,h2,h3,.topbar h2{
+  font-family:"Fraunces",Georgia,serif!important;
+  letter-spacing:-.025em;
+}
+button,input,select,textarea{font-family:inherit}
+.screen{
+  background:var(--suuf-cream)!important;
+  min-height:100dvh;
+  padding-bottom:112px!important;
+}
+.screen[data-screen="auth"]{padding-bottom:0!important}
+
+/* AUTH */
+.auth-wrap{
+  width:min(92%,430px)!important;
+  margin:auto!important;
+  padding:54px 0 36px!important;
+}
+.auth-wrap h1{
+  font-size:52px!important;
+  color:var(--suuf-orange)!important;
+  margin-bottom:8px!important;
+}
+.auth-wrap .lead{
+  color:var(--suuf-muted)!important;
+  line-height:1.6!important;
+}
+.role-picker{
+  background:#EEE8DD!important;
+  border:1px solid var(--suuf-line)!important;
+  padding:4px!important;
+  border-radius:14px!important;
+  gap:4px!important;
+}
+.role-opt{
+  border-radius:10px!important;
+  padding:10px 12px!important;
+  transition:.2s ease!important;
+}
+.role-opt.on{
+  background:var(--suuf-card)!important;
+  color:var(--suuf-orange)!important;
+  box-shadow:0 3px 12px rgba(48,45,41,.08)!important;
+}
+
+/* TOP BAR */
+.topbar{
+  padding:30px 22px 18px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+}
+.topbar h2{
+  font-size:29px!important;
+  font-weight:600!important;
+  margin:0!important;
+}
+.icon-btn,.back{
+  background:var(--suuf-card)!important;
+  border:1px solid var(--suuf-line)!important;
+  box-shadow:none!important;
+}
+
+/* SEARCH */
+.search-bar{
+  margin:0 20px 16px!important;
+  min-height:54px!important;
+  padding:0 16px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+  border:1px solid var(--suuf-line)!important;
+  border-radius:16px!important;
+  background:var(--suuf-card)!important;
+  color:#A49C92!important;
+  box-shadow:0 4px 14px rgba(48,45,41,.035)!important;
+}
+.search-bar .ic{width:21px!important;height:21px!important}
+
+/* FILTERS */
+.chips{
+  padding:0 20px!important;
+  gap:9px!important;
+  overflow-x:auto!important;
+  scrollbar-width:none!important;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  border:1px solid var(--suuf-line)!important;
+  background:var(--suuf-card)!important;
+  color:var(--suuf-ink)!important;
+  border-radius:12px!important;
+  padding:10px 16px!important;
+  white-space:nowrap!important;
+  font-size:13px!important;
+}
+.chip.on{
+  background:var(--suuf-orange)!important;
+  border-color:var(--suuf-orange)!important;
+  color:#fff!important;
+}
+
+/* LISTS / TERRAIN CARDS */
+.list{
+  padding:18px 20px 20px!important;
+}
+.list:before{
+  content:"Terrains disponibles";
+  display:block;
+  font-family:"Fraunces",Georgia,serif;
+  font-size:19px;
+  font-weight:600;
+  margin:2px 0 14px;
+}
+.list > *:not(.loader),
+#listeTerrains > *:not(.loader),
+#listeMesAnnonces > *:not(.loader),
+#listeConversations > *:not(.loader),
+#listeNotaires > *:not(.loader){
+  border-radius:18px!important;
+  border:1px solid var(--suuf-line)!important;
+  background:var(--suuf-card)!important;
+  box-shadow:var(--suuf-shadow)!important;
+}
+
+/* Common card polish for dynamically generated content */
+.terrain-card,.terrain-item,.annonce-card,.property-card,.conversation-card,.notaire-card{
+  border-radius:18px!important;
+  overflow:hidden!important;
+  border:1px solid var(--suuf-line)!important;
+  background:var(--suuf-card)!important;
+  box-shadow:var(--suuf-shadow)!important;
+}
+.tag,.badge{
+  border-radius:8px!important;
+  font-weight:600!important;
+}
+.tag-verified,.verified,.tag-success{
+  background:var(--suuf-green-soft)!important;
+  color:var(--suuf-green)!important;
+}
+
+/* TERRAIN DETAIL */
+.hero-img{
+  min-height:310px!important;
+  border-radius:0 0 30px 30px!important;
+  background:
+    linear-gradient(180deg,rgba(25,20,15,.08),rgba(25,20,15,.52)),
+    linear-gradient(135deg,#B98250,#D9C09A)!important;
+  position:relative!important;
+}
+.hero-img:after{
+  content:"Terrain vérifié";
+  position:absolute;
+  left:20px;
+  bottom:20px;
+  padding:9px 12px;
+  border-radius:10px;
+  background:rgba(231,238,226,.96);
+  color:var(--suuf-green);
+  font-size:12px;
+  font-weight:700;
+}
+.score-float{
+  top:20px!important;
+  right:20px!important;
+  border-radius:12px!important;
+  background:rgba(252,249,242,.94)!important;
+  color:var(--suuf-green)!important;
+  border:1px solid var(--suuf-line)!important;
+  backdrop-filter:blur(8px);
+}
+.sheet{
+  margin:-22px 16px 0!important;
+  position:relative!important;
+  border-radius:24px!important;
+  background:var(--suuf-card)!important;
+  box-shadow:0 12px 35px rgba(48,45,41,.10)!important;
+  border:1px solid var(--suuf-line)!important;
+  padding:22px!important;
+}
+.cta-row{
+  padding:4px 18px 24px!important;
+  gap:10px!important;
+  background:var(--suuf-cream)!important;
+}
+.btn-p{
+  background:var(--suuf-orange)!important;
+  border-color:var(--suuf-orange)!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+  font-weight:600!important;
+}
+.btn-p:hover{background:var(--suuf-orange-dark)!important}
+.btn-s{
+  background:var(--suuf-card)!important;
+  color:var(--suuf-ink)!important;
+  border:1px solid var(--suuf-line)!important;
+  border-radius:14px!important;
+}
+
+/* PUBLISH FORM */
+.form-block{
+  padding:4px 20px 28px!important;
+}
+.form-block label{
+  color:var(--suuf-ink)!important;
+  font-size:13px!important;
+  font-weight:600!important;
+  margin:18px 0 8px!important;
+}
+.form-block input,.form-block select,.form-block textarea,
+#authEmail,#authPass,#authTelephone,#authCode,#regNom,#regNomTel,
+#ancienMotDePasse,#nouveauMotDePasse,#confirmationMotDePasse,#suppressionPass{
+  background:var(--suuf-card)!important;
+  color:var(--suuf-ink)!important;
+  border:1px solid var(--suuf-line)!important;
+  border-radius:14px!important;
+  min-height:50px!important;
+  outline:none!important;
+}
+.form-block input:focus,.form-block select:focus,.form-block textarea:focus{
+  border-color:var(--suuf-orange)!important;
+  box-shadow:0 0 0 3px rgba(201,104,47,.10)!important;
+}
+.form-block textarea{padding:14px!important}
+.upload-box{
+  background:var(--suuf-card)!important;
+  border:1.5px dashed #CFC5B7!important;
+  border-radius:16px!important;
+  min-height:120px!important;
+  color:var(--suuf-muted)!important;
+}
+#pMapContainer,#pMapContainer *{border-radius:16px}
+#pMapContainer{border:1px solid var(--suuf-line)!important}
+
+/* STEP INDICATOR */
+.suuf-stepper{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  padding:0 20px 14px;
+  position:relative;
+}
+.suuf-stepper:before{
+  content:"";
+  position:absolute;
+  top:16px;
+  left:42px;
+  right:42px;
+  height:1px;
+  background:var(--suuf-line);
+}
+.suuf-step{
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  color:#9B948B;
+  font-size:10px;
+  font-weight:600;
+}
+.suuf-step span{
+  width:32px;height:32px;
+  display:grid;place-items:center;
+  border-radius:50%;
+  background:#EEE8DD;
+  border:1px solid var(--suuf-line);
+  font-size:12px;
+}
+.suuf-step.active{color:var(--suuf-orange)}
+.suuf-step.active span{
+  color:#fff;
+  background:var(--suuf-orange);
+  border-color:var(--suuf-orange);
+}
+
+/* MESSAGES */
+#listeConversations{padding:8px 20px 24px!important}
+#listeConversations:before{
+  content:"";
+  display:block;
+  height:90px;
+  border-radius:20px;
+  margin:4px 0 18px;
+  background:
+    radial-gradient(circle at 70% 42%,#E6B27F 0 12px,transparent 13px),
+    radial-gradient(circle at 55% 55%,#D9C5A9 0 20px,transparent 21px),
+    linear-gradient(135deg,#F2E7D8,#FBF8F0);
+  border:1px solid var(--suuf-line);
+}
+
+/* NOTAIRES */
+#listeNotaires{
+  padding:4px 20px 20px!important;
+}
+#listeNotaires:before{
+  content:"Sécurisez votre achat";
+  display:block;
+  padding:20px;
+  margin:0 0 16px;
+  border-radius:18px;
+  color:#fff;
+  font-family:"Fraunces",Georgia,serif;
+  font-size:20px;
+  font-weight:600;
+  background:linear-gradient(135deg,#40583C,#5E7655);
+}
+.notaire-card{padding:14px!important}
+
+/* PROFILE */
+.profil-head{
+  margin:4px 20px 20px!important;
+  padding:26px 20px 22px!important;
+  border-radius:24px!important;
+  background:
+    linear-gradient(180deg,rgba(201,104,47,.92),rgba(169,77,32,.96)),
+    #C9682F!important;
+  color:#fff!important;
+  box-shadow:var(--suuf-shadow)!important;
+}
+.profil-avatar{
+  border:2px solid rgba(255,255,255,.85)!important;
+  background:rgba(255,255,255,.16)!important;
+  color:#fff!important;
+}
+.profil-head [id="profilEmail"]{color:rgba(255,255,255,.78)!important}
+.profil-head .tag{
+  background:#E7EEE2!important;
+  color:var(--suuf-green)!important;
+}
+.suuf-profile-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1px;
+  margin-top:18px;
+  background:rgba(255,255,255,.22);
+  border-radius:14px;
+  overflow:hidden;
+}
+.suuf-profile-stat{
+  text-align:center;
+  padding:10px 4px;
+  background:rgba(255,255,255,.08);
+}
+.suuf-profile-stat strong{display:block;font-size:18px}
+.suuf-profile-stat small{opacity:.75;font-size:10px}
+.menu-item{
+  margin:0!important;
+  padding:18px 20px!important;
+  border-bottom:1px solid var(--suuf-line)!important;
+  background:transparent!important;
+}
+.menu-item .ic{color:#716A62!important}
+
+/* BOTTOM NAV */
+.bottom-nav{
+  position:fixed!important;
+  z-index:1000!important;
+  left:14px!important;
+  right:14px!important;
+  bottom:14px!important;
+  width:auto!important;
+  height:76px!important;
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important;
+  border-radius:28px!important;
+  background:#302D29!important;
+  box-shadow:0 16px 38px rgba(48,45,41,.22)!important;
+  border:1px solid rgba(255,255,255,.06)!important;
+}
+.nav-item{
+  color:#9C958C!important;
+  border-radius:18px!important;
+  gap:4px!important;
+  font-size:10px!important;
+}
+.nav-item.active{
+  color:#fff!important;
+}
+.nav-item.active .ic{color:var(--suuf-orange)!important}
+.nav-item .ic{width:22px!important;height:22px!important}
+
+/* ERRORS / LOADER */
+.error-msg{
+  color:#9C3C2E!important;
+  background:#F6E5E0!important;
+  border-radius:12px!important;
+  padding:9px 11px!important;
+}
+.loader{
+  color:var(--suuf-muted)!important;
+  padding:34px 20px!important;
+  text-align:center!important;
+}
+
+/* RESPONSIVE */
+@media(min-width:700px){
+  #app{max-width:480px;margin:auto;box-shadow:0 0 70px rgba(48,45,41,.08)}
+  body{background:#ECE6DC!important}
+  .bottom-nav{max-width:452px;left:50%!important;right:auto!important;transform:translateX(-50%)}
+}
+@media(max-width:360px){
+  .topbar{padding-left:16px!important;padding-right:16px!important}
+  .search-bar,.chips,.list,.form-block,#listeConversations,#listeNotaires{margin-left:0!important;margin-right:0!important}
+  .suuf-stepper{padding-left:10px;padding-right:10px}
+}
+</style>
+
 <script src="vendor/leaflet/leaflet.js"></script>
 </head>
 <body>
@@ -152,6 +589,13 @@
   <div class="screen" data-screen="publier">
     <div class="topbar"><h2 id="publierTitre">Publier un terrain</h2><div></div></div>
     <div class="error-msg" id="publierError"></div>
+    
+<div class="suuf-stepper" aria-label="Étapes de publication">
+  <div class="suuf-step active"><span>1</span>Terrain</div>
+  <div class="suuf-step"><span>2</span>Localisation</div>
+  <div class="suuf-step"><span>3</span>Documents</div>
+  <div class="suuf-step"><span>4</span>Publication</div>
+</div>
     <form class="form-block" id="formPublier">
       <label>Titre de l'annonce</label>
       <input id="pTitre" required placeholder="Ex : Parcelle Ngaparou 800 m²">
@@ -223,6 +667,13 @@
       <div style="font-weight:600; font-size:16px;" id="profilNom">—</div>
       <div style="font-size:12px; opacity:.55;" id="profilEmail">—</div>
       <span class="tag tag-neutral" style="margin-top:8px;"><svg class="ic"><use href="#ic-user"/></svg><span id="profilRole">—</span></span>
+      
+<div class="suuf-profile-stats">
+  <div class="suuf-profile-stat"><strong id="profilAnnoncesCount">4</strong><small>Annonces</small></div>
+  <div class="suuf-profile-stat"><strong id="profilContactsCount">12</strong><small>Contacts</small></div>
+  <div class="suuf-profile-stat"><strong id="profilVentesCount">3</strong><small>Ventes</small></div>
+</div>
+
     </div>
     <div class="menu-item" data-go="mes-annonces"><svg class="ic"><use href="#ic-folder"/></svg> Mes annonces <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
     <div class="menu-item" data-go="mes-demandes"><svg class="ic"><use href="#ic-handshake"/></svg> Mes demandes notaire <span class="arrow"><svg class="ic"><use href="#ic-chevron-right"/></svg></span></div>
@@ -340,6 +791,26 @@
         .catch((err) => console.warn('Échec enregistrement service worker :', err));
     });
   }
+</script>
+
+
+<script>
+(function(){
+  // Suuf visual polish: mark dynamic cards without changing existing app behavior.
+  function polish(){
+    const groups = [
+      document.querySelectorAll('#listeTerrains > *:not(.loader)'),
+      document.querySelectorAll('#listeConversations > *:not(.loader)'),
+      document.querySelectorAll('#listeNotaires > *:not(.loader)'),
+      document.querySelectorAll('#listeMesAnnonces > *:not(.loader)'),
+      document.querySelectorAll('#listeMesDemandes > *:not(.loader)')
+    ];
+    groups.forEach(nodes => nodes.forEach(n => n.classList.add('suuf-dynamic-card')));
+  }
+  const obs = new MutationObserver(polish);
+  obs.observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('DOMContentLoaded',polish);
+})();
 </script>
 
 </body>
