@@ -37,6 +37,22 @@ document.querySelectorAll('[data-go]').forEach(el => {
   el.addEventListener('click', () => goTo(el.dataset.go));
 });
 
+// Attache un écouteur uniquement si l'élément existe, pour éviter qu'une page
+// pas encore à jour (ancien index.html en cache, fichier mal poussé, etc.)
+// ne bloque le câblage de TOUT le reste du script.
+function surEvenement(id, evenement, gestionnaire) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener(evenement, gestionnaire);
+  } else {
+    console.warn(`[Suuf] Élément #${id} introuvable — vérifie que index.html est à jour (cache/déploiement).`);
+  }
+}
+
+// icônes en haut à droite des écrans
+surEvenement('btnNotifications', 'click', () => goTo('notifications'));
+surEvenement('btnParametres', 'click', () => goTo('confidentialite'));
+
 // ===== AUTH =====
 document.querySelectorAll('.role-picker .role-opt[data-role]').forEach(el => {
   el.addEventListener('click', () => {
@@ -63,7 +79,7 @@ document.querySelectorAll('.role-opt[data-methode]').forEach(el => {
   });
 });
 
-document.getElementById('authSwitchLink').addEventListener('click', (e) => {
+surEvenement('authSwitchLink', 'click', (e) => {
   e.preventDefault();
   modeAuth = modeAuth === 'connexion' ? 'inscription' : 'connexion';
   const estInscription = modeAuth === 'inscription';
@@ -74,7 +90,7 @@ document.getElementById('authSwitchLink').addEventListener('click', (e) => {
   document.getElementById('motDePasseOublieWrap').style.display = estInscription ? 'none' : 'block';
 });
 
-document.getElementById('motDePasseOublieLink').addEventListener('click', (e) => {
+surEvenement('motDePasseOublieLink', 'click', (e) => {
   e.preventDefault();
   const email = document.getElementById('authEmail').value.trim();
   const errEl = document.getElementById('authError');
@@ -99,7 +115,7 @@ document.getElementById('motDePasseOublieLink').addEventListener('click', (e) =>
 });
 
 // ----- Connexion / inscription par téléphone -----
-document.getElementById('btnEnvoyerCode').addEventListener('click', () => {
+surEvenement('btnEnvoyerCode', 'click', () => {
   const numero = document.getElementById('authTelephone').value.trim();
   const errEl = document.getElementById('authError');
   errEl.style.color = '';
@@ -120,7 +136,7 @@ document.getElementById('btnEnvoyerCode').addEventListener('click', () => {
   });
 });
 
-document.getElementById('renvoyerCodeLink').addEventListener('click', (e) => {
+surEvenement('renvoyerCodeLink', 'click', (e) => {
   e.preventDefault();
   const numero = document.getElementById('authTelephone').value.trim();
   const errEl = document.getElementById('authError');
@@ -136,7 +152,7 @@ document.getElementById('renvoyerCodeLink').addEventListener('click', (e) => {
   });
 });
 
-document.getElementById('btnValiderCode').addEventListener('click', () => {
+surEvenement('btnValiderCode', 'click', () => {
   const code = document.getElementById('authCode').value.trim();
   const errEl = document.getElementById('authError');
   errEl.style.color = '';
@@ -156,7 +172,7 @@ document.getElementById('btnValiderCode').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btnTerminerInscriptionTel').addEventListener('click', () => {
+surEvenement('btnTerminerInscriptionTel', 'click', () => {
   const nom = document.getElementById('regNomTel').value.trim();
   const errEl = document.getElementById('authError');
   errEl.style.color = '';
@@ -183,7 +199,7 @@ document.getElementById('btnTerminerInscriptionTel').addEventListener('click', (
   });
 });
 
-document.getElementById('authSubmit').addEventListener('click', () => {
+surEvenement('authSubmit', 'click', () => {
   const email = document.getElementById('authEmail').value.trim();
   const pass = document.getElementById('authPass').value;
   const errEl = document.getElementById('authError');
@@ -216,7 +232,7 @@ function traduireErreurFirebase(code) {
   return map[code] || 'Une erreur est survenue. Réessaie.';
 }
 
-document.getElementById('btnLogout').addEventListener('click', () => deconnecter());
+surEvenement('btnLogout', 'click', () => deconnecter());
 
 // bascule automatique auth <-> app selon l'état de connexion
 auth.onAuthStateChanged((user) => {
@@ -361,19 +377,19 @@ function initiales(nom) {
   return nom.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
 }
 
-document.getElementById('btnContacterVendeur').addEventListener('click', () => {
+surEvenement('btnContacterVendeur', 'click', () => {
   if (!terrainCourantId) return;
   getTerrain(terrainCourantId).then(t => {
     demarrerConversation(terrainCourantId, t.vendeurId).then(convId => ouvrirChat(convId, t.vendeurNom || 'Vendeur'));
   });
 });
 
-document.getElementById('btnSolliciterNotaire').addEventListener('click', () => {
+surEvenement('btnSolliciterNotaire', 'click', () => {
   goTo('notaires');
 });
 
 // ===== PUBLIER =====
-document.getElementById('formPublier').addEventListener('submit', (e) => {
+surEvenement('formPublier', 'submit', (e) => {
   e.preventDefault();
   const errEl = document.getElementById('publierError');
   errEl.classList.remove('show');
@@ -405,7 +421,7 @@ document.getElementById('formPublier').addEventListener('submit', (e) => {
   });
 });
 
-document.getElementById('pFichier').addEventListener('change', (e) => {
+surEvenement('pFichier', 'change', (e) => {
   const f = e.target.files[0];
   document.getElementById('pFichierLabel').textContent = f ? f.name : 'Glisser un fichier ou parcourir';
 });
@@ -445,8 +461,8 @@ function ouvrirChat(convId, titre) {
   });
 }
 
-document.getElementById('chatSend').addEventListener('click', envoyerMessageDepuisInput);
-document.getElementById('chatInput').addEventListener('keypress', (e) => {
+surEvenement('chatSend', 'click', envoyerMessageDepuisInput);
+surEvenement('chatInput', 'keypress', (e) => {
   if (e.key === 'Enter') envoyerMessageDepuisInput();
 });
 function envoyerMessageDepuisInput() {
@@ -458,33 +474,70 @@ function envoyerMessageDepuisInput() {
 }
 
 // ===== NOTAIRES =====
-function chargerNotaires() {
+let notairesCourants = [];
+
+function afficherNotaires(notaires, messageVide) {
   const container = document.getElementById('listeNotaires');
-  listerNotaires().then(notaires => {
-    if (notaires.length === 0) {
-      container.innerHTML = '<div class="empty-state">Aucun notaire référencé pour le moment.</div>';
-      return;
-    }
-    container.innerHTML = notaires.map(n => `
-      <div class="not-item" data-id="${n.id}">
-        <div class="avatar">${initiales(n.nom || 'N')}</div>
-        <div class="info">
-          <div class="name">${escHTML(n.nom || '')}</div>
-          <div class="ville">${escHTML(n.ville || '')}</div>
-          <span class="tag tag-terre" style="margin-top:5px;"><svg class="ic"><use href="#ic-seal"/></svg>${escHTML(n.specialite || '')}</span>
-        </div>
-        <button class="go"><svg class="ic"><use href="#ic-arrow-right"/></svg></button>
-      </div>`).join('');
-    container.querySelectorAll('.not-item').forEach(el => {
-      el.addEventListener('click', () => {
-        if (!terrainCourantId) { alert('Ouvre d\'abord un terrain pour solliciter un notaire.'); return; }
-        solliciterNotaire(terrainCourantId, el.dataset.id).then(() => {
-          alert('Demande envoyée au notaire.');
-        });
+  if (notaires.length === 0) {
+    container.innerHTML = `<div class="empty-state">${messageVide}</div>`;
+    return;
+  }
+  container.innerHTML = notaires.map(n => `
+    <div class="not-item" data-id="${n.id}">
+      <div class="avatar">${initiales(n.nom || 'N')}</div>
+      <div class="info">
+        <div class="name">${escHTML(n.nom || '')}</div>
+        <div class="ville">${escHTML(n.ville || '')}</div>
+        <span class="tag tag-terre" style="margin-top:5px;"><svg class="ic"><use href="#ic-seal"/></svg>${escHTML(n.specialite || '')}</span>
+      </div>
+      <button class="go"><svg class="ic"><use href="#ic-arrow-right"/></svg></button>
+    </div>`).join('');
+  container.querySelectorAll('.not-item').forEach(el => {
+    el.addEventListener('click', () => {
+      if (!terrainCourantId) { alert('Ouvre d\'abord un terrain pour solliciter un notaire.'); return; }
+      solliciterNotaire(terrainCourantId, el.dataset.id).then(() => {
+        alert('Demande envoyée au notaire.');
       });
     });
   });
 }
+
+function chargerNotaires() {
+  const container = document.getElementById('listeNotaires');
+  container.innerHTML = '<div class="loader">Chargement…</div>';
+  listerNotaires().then(notaires => {
+    notairesCourants = notaires;
+    afficherNotaires(notaires, 'Aucun notaire référencé pour le moment.');
+  });
+}
+
+surEvenement('btnRechercheNotaire', 'click', () => {
+  const bar = document.getElementById('notaireSearchBar');
+  const input = document.getElementById('notaireSearchInput');
+  const estVisible = bar.style.display !== 'none';
+  if (estVisible) {
+    bar.style.display = 'none';
+    input.value = '';
+    afficherNotaires(notairesCourants, 'Aucun notaire référencé pour le moment.');
+  } else {
+    bar.style.display = 'flex';
+    input.focus();
+  }
+});
+
+surEvenement('notaireSearchInput', 'input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) {
+    afficherNotaires(notairesCourants, 'Aucun notaire référencé pour le moment.');
+    return;
+  }
+  const filtres = notairesCourants.filter(n =>
+    (n.nom || '').toLowerCase().includes(q) ||
+    (n.ville || '').toLowerCase().includes(q) ||
+    (n.specialite || '').toLowerCase().includes(q)
+  );
+  afficherNotaires(filtres, 'Aucun notaire ne correspond à ta recherche.');
+});
 
 // ===== PROFIL =====
 function chargerProfil() {
@@ -658,7 +711,7 @@ function chargerNotifications() {
 }
 
 // ===== MODIFIER LE MOT DE PASSE =====
-document.getElementById('btnChangerMotDePasse').addEventListener('click', () => {
+surEvenement('btnChangerMotDePasse', 'click', () => {
   const user = auth.currentUser;
   const errEl = document.getElementById('motDePasseError');
   errEl.style.color = '';
@@ -706,7 +759,7 @@ document.getElementById('btnChangerMotDePasse').addEventListener('click', () => 
 });
 
 // ===== SUPPRESSION DE COMPTE =====
-document.getElementById('btnSupprimerCompte').addEventListener('click', () => {
+surEvenement('btnSupprimerCompte', 'click', () => {
   const user = auth.currentUser;
   const errEl = document.getElementById('suppressionError');
   const passInput = document.getElementById('suppressionPass');
