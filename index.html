@@ -120,7 +120,7 @@
 
   <!-- ===== RECHERCHE ===== -->
   <div class="screen" data-screen="recherche">
-    <div class="topbar"><h2>Trouver un terrain</h2><div class="icon-btn"><svg class="ic"><use href="#ic-bell"/></svg></div></div>
+    <div class="topbar"><h2>Trouver un terrain</h2><div class="icon-btn" id="btnNotifications"><svg class="ic"><use href="#ic-bell"/></svg></div></div>
     <div class="search-bar"><svg class="ic"><use href="#ic-search"/></svg> Zone, ville, quartier…</div>
     <div class="chips">
       <div class="chip on" data-filtre="tous">Tous</div>
@@ -205,7 +205,11 @@
 
   <!-- ===== NOTAIRES ===== -->
   <div class="screen" data-screen="notaires">
-    <div class="topbar"><h2>Notaires</h2><div class="icon-btn"><svg class="ic"><use href="#ic-search"/></svg></div></div>
+    <div class="topbar"><h2>Notaires</h2><div class="icon-btn" id="btnRechercheNotaire"><svg class="ic"><use href="#ic-search"/></svg></div></div>
+    <div class="search-bar" id="notaireSearchBar" style="display:none;">
+      <svg class="ic"><use href="#ic-search"/></svg>
+      <input id="notaireSearchInput" type="text" placeholder="Nom, ville, spécialité…" style="border:none; background:transparent; outline:none; width:100%; font-size:14px; font-family:inherit; color:inherit;">
+    </div>
     <div id="listeNotaires">
       <div class="loader">Chargement…</div>
     </div>
@@ -213,7 +217,7 @@
 
   <!-- ===== PROFIL ===== -->
   <div class="screen" data-screen="profil">
-    <div class="topbar"><h2>Profil</h2><div class="icon-btn"><svg class="ic"><use href="#ic-gear"/></svg></div></div>
+    <div class="topbar"><h2>Profil</h2><div class="icon-btn" id="btnParametres"><svg class="ic"><use href="#ic-gear"/></svg></div></div>
     <div class="profil-head">
       <div class="profil-avatar" id="profilAvatar">?</div>
       <div style="font-weight:600; font-size:16px;" id="profilNom">—</div>
