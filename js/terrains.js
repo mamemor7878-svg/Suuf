@@ -82,3 +82,33 @@ function supprimerTerrain(terrainId) {
 
   return supprimerDoc.then(() => db.collection('terrains').doc(terrainId).delete());
 }
+
+// ===== Favoris =====
+// Stockés dans une sous-collection users/{uid}/favoris/{terrainId}, un document par terrain favori.
+
+function ajouterFavori(terrainId) {
+  const uid = auth.currentUser.uid;
+  return db.collection('users').doc(uid).collection('favoris').doc(terrainId).set({
+    terrainId: terrainId,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+function retirerFavori(terrainId) {
+  const uid = auth.currentUser.uid;
+  return db.collection('users').doc(uid).collection('favoris').doc(terrainId).delete();
+}
+
+function listerIdsFavoris() {
+  const uid = auth.currentUser && auth.currentUser.uid;
+  if (!uid) return Promise.resolve([]);
+  return db.collection('users').doc(uid).collection('favoris').get()
+    .then(snap => snap.docs.map(d => d.id));
+}
+
+function mesFavoris() {
+  return listerIdsFavoris().then(ids => {
+    if (ids.length === 0) return [];
+    return Promise.all(ids.map(id => getTerrain(id))).then(terrains => terrains.filter(t => t && t.id));
+  });
+}
