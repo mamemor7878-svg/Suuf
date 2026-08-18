@@ -9,8 +9,6 @@ let modeAuth = 'connexion'; // 'connexion' | 'inscription'
 let methodeAuth = 'email'; // 'email' | 'telephone'
 let terrainEnEditionId = null; // id du terrain en cours de modification, ou null si on publie une nouvelle annonce
 let entreeParEdition = false; // évite que goTo('publier') réinitialise le formulaire quand on arrive via "Modifier"
-let favorisActuels = new Set(); // ids des terrains mis en favori par l'utilisateur courant
-let favorisCharges = false;
 
 function goTo(screenName) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === screenName));
@@ -22,7 +20,6 @@ function goTo(screenName) {
   if (screenName === 'mes-annonces') chargerMesAnnonces();
   if (screenName === 'mes-demandes') chargerMesDemandes();
   if (screenName === 'notifications') chargerNotifications();
-  if (screenName === 'favoris') chargerFavoris();
   if (screenName === 'publier') {
     initCartePublier();
     if (!entreeParEdition) {
@@ -268,8 +265,6 @@ auth.onAuthStateChanged((user) => {
   } else {
     bottomnav.style.display = 'none';
     goTo('auth');
-    favorisActuels = new Set();
-    favorisCharges = false;
     document.getElementById('phoneEtapeNumero').style.display = 'block';
     document.getElementById('phoneEtapeCode').style.display = 'none';
     document.getElementById('phoneEtapeProfil').style.display = 'none';
@@ -277,115 +272,41 @@ auth.onAuthStateChanged((user) => {
 });
 
 // ===== RECHERCHE =====
-function assurerFavorisCharges() {
-  if (favorisCharges) return Promise.resolve(favorisActuels);
-  return listerIdsFavoris().then(ids => {
-    favorisActuels = new Set(ids);
-    favorisCharges = true;
-    return favorisActuels;
-  }).catch(() => favorisActuels);
-}
-
 function chargerTerrains(filtres = {}) {
   const container = document.getElementById('listeTerrains');
   container.innerHTML = '<div class="loader">Chargement des terrains…</div>';
 
-  Promise.all([rechercherTerrains(filtres), assurerFavorisCharges()]).then(([terrains]) => {
+  rechercherTerrains(filtres).then(terrains => {
     if (terrains.length === 0) {
       container.innerHTML = '<div class="empty-state">Aucun terrain disponible pour le moment.</div>';
       return;
     }
-    container.innerHTML = terrains.map(t => carteTerrainHTML(t)).join('');
+    container.innerHTML = terrains.map(carteTerrainHTML).join('');
     container.querySelectorAll('.m-card').forEach(card => {
       card.addEventListener('click', () => ouvrirTerrain(card.dataset.id));
     });
-    cablerBoutonsFavoris(container);
   }).catch(err => {
     container.innerHTML = `<div class="empty-state">Erreur de chargement : ${err.message}</div>`;
   });
 }
 
 function carteTerrainHTML(t) {
-  const sc = t.scoreConfiance || {};
-  const estFav = favorisActuels.has(t.id);
+  const fiable = t.scoreConfiance && t.scoreConfiance.titreVerifie;
+  const tagHTML = fiable
+    ? '<span class="tag tag-ok"><svg class="ic"><use href="#ic-check-seal"/></svg>Fiable</span>'
+    : '<span class="tag tag-warn"><svg class="ic"><use href="#ic-hourglass"/></svg>À vérifier</span>';
   return `
     <div class="m-card" data-id="${t.id}">
-      <div class="m-thumb">
-        <div class="m-pin"><svg class="ic"><use href="#ic-pin"/></svg></div>
-        <button type="button" class="m-fav-btn ${estFav ? 'on' : ''}" data-fav-id="${t.id}">
-          <svg class="ic"><use href="#${estFav ? 'ic-heart-fill' : 'ic-heart'}"/></svg>
-        </button>
-      </div>
+      <div class="m-thumb"><svg class="ic" style="width:34px;height:34px;"><use href="#ic-pin"/></svg></div>
       <div class="m-info">
         <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(labelStatut(t.statutJuridique))}</div>
         <div class="m-title">${escHTML(t.titre || '')}</div>
         <div class="m-row">
           <span class="m-price">${formaterFCFA(t.prix)}</span>
-        </div>
-        <div class="m-stats-row">
-          <div class="m-stat"><svg class="ic"><use href="#ic-ruler"/></svg><span>${t.superficie ? t.superficie + ' m²' : '—'}</span></div>
-          <div class="m-stat"><svg class="ic"><use href="#ic-doc"/></svg><span>${sc.titreVerifie ? 'Titre vérifié' : 'À vérifier'}</span></div>
-          <div class="m-stat"><svg class="ic"><use href="#ic-target"/></svg><span>${sc.bornageGPS ? 'Bornage GPS' : 'Non borné'}</span></div>
-        </div>
-        <div class="m-cta-row">
-          <button type="button" class="btn-p"><svg class="ic"><use href="#ic-eye"/></svg>Voir les détails</button>
-          <button type="button" class="m-fav-inline ${estFav ? 'on' : ''}" data-fav-id="${t.id}">
-            <svg class="ic"><use href="#${estFav ? 'ic-heart-fill' : 'ic-heart'}"/></svg>
-          </button>
+          ${tagHTML}
         </div>
       </div>
     </div>`;
-}
-
-function cablerBoutonsFavoris(container) {
-  container.querySelectorAll('[data-fav-id]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      basculerFavori(btn.dataset.favId);
-    });
-  });
-}
-
-function basculerFavori(terrainId) {
-  const user = auth.currentUser;
-  if (!user || !terrainId) return;
-  const estFavAvant = favorisActuels.has(terrainId);
-  const action = estFavAvant ? retirerFavori(terrainId) : ajouterFavori(terrainId);
-
-  action.then(() => {
-    if (estFavAvant) favorisActuels.delete(terrainId); else favorisActuels.add(terrainId);
-    const actif = favorisActuels.has(terrainId);
-    document.querySelectorAll(`[data-fav-id="${terrainId}"]`).forEach(btn => {
-      btn.classList.toggle('on', actif);
-      const u = btn.querySelector('use');
-      if (u) u.setAttribute('href', actif ? '#ic-heart-fill' : '#ic-heart');
-    });
-    const ecranActif = document.querySelector('.screen.active');
-    if (ecranActif && ecranActif.dataset.screen === 'favoris') chargerFavoris();
-  }).catch(err => console.error('Erreur mise à jour favori :', err));
-}
-
-// ===== FAVORIS =====
-function chargerFavoris() {
-  const container = document.getElementById('listeFavoris');
-  container.innerHTML = '<div class="loader">Chargement…</div>';
-
-  assurerFavorisCharges().then(() => mesFavoris()).then(terrains => {
-    if (terrains.length === 0) {
-      container.innerHTML = `<div class="empty-state">
-        <h3>Aucun favori pour le moment</h3>
-        <div>Appuie sur le cœur d'une annonce pour la retrouver ici.</div>
-      </div>`;
-      return;
-    }
-    container.innerHTML = terrains.map(t => carteTerrainHTML(t)).join('');
-    container.querySelectorAll('.m-card').forEach(card => {
-      card.addEventListener('click', () => ouvrirTerrain(card.dataset.id));
-    });
-    cablerBoutonsFavoris(container);
-  }).catch(err => {
-    container.innerHTML = `<div class="empty-state">Erreur de chargement : ${escHTML(err.message)}</div>`;
-  });
 }
 
 function labelStatut(s) {
@@ -410,29 +331,6 @@ document.querySelectorAll('.chip[data-filtre]').forEach(chip => {
   });
 });
 
-// filtre texte simple côté client sur les cartes déjà chargées
-surEvenement('rechercheInput', 'input', (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  document.querySelectorAll('#listeTerrains .m-card').forEach(card => {
-    card.style.display = (!q || card.textContent.toLowerCase().includes(q)) ? '' : 'none';
-  });
-});
-
-// les boutons "filtres" (icône sliders) à côté des barres de recherche : par défaut,
-// ils donnent le focus au champ de recherche associé (pas de panneau de filtres avancés pour l'instant).
-document.querySelectorAll('.search-filtre-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const input = btn.closest('.search-bar')?.querySelector('input');
-    if (input) input.focus();
-  });
-});
-
-surEvenement('btnFavoriTerrain', 'click', (e) => {
-  e.stopPropagation();
-  const id = e.currentTarget.dataset.favId;
-  if (id) basculerFavori(id);
-});
-
 // ===== FICHE TERRAIN =====
 function ouvrirTerrain(id) {
   terrainCourantId = id;
@@ -441,18 +339,10 @@ function ouvrirTerrain(id) {
   document.getElementById('terrainMapContainer').style.display = 'none';
   goTo('terrain');
 
-  Promise.all([getTerrain(id), assurerFavorisCharges()]).then(([t]) => {
+  getTerrain(id).then(t => {
     if (!t || !t.id) {
       sheet.innerHTML = '<div class="empty-state">Ce terrain est introuvable.</div>';
       return;
-    }
-    const heartBtn = document.getElementById('btnFavoriTerrain');
-    if (heartBtn) {
-      heartBtn.dataset.favId = t.id;
-      const actif = favorisActuels.has(t.id);
-      heartBtn.classList.toggle('on', actif);
-      const u = heartBtn.querySelector('use');
-      if (u) u.setAttribute('href', actif ? '#ic-heart-fill' : '#ic-heart');
     }
     afficherCarteTerrain(t.localisation);
     const sc = t.scoreConfiance || {};
@@ -541,28 +431,7 @@ function chargerConversations() {
   const container = document.getElementById('listeConversations');
   mesConversations((convs) => {
     if (convs.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <svg class="illustration-vide" viewBox="0 0 190 150" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="95" cy="120" rx="70" ry="14" fill="var(--sable)" opacity="0.5"/>
-            <path d="M40,50 h70 a12,12 0 0 1 12,12 v28 a12,12 0 0 1 -12,12 h-46 l-16,16 v-16 h-8 a12,12 0 0 1 -12,-12 v-28 a12,12 0 0 1 12,-12 Z" fill="var(--vert)"/>
-            <circle cx="62" cy="76" r="4" fill="var(--carte)"/>
-            <circle cx="76" cy="76" r="4" fill="var(--carte)"/>
-            <circle cx="90" cy="76" r="4" fill="var(--carte)"/>
-            <path d="M100,70 h48 a9,9 0 0 1 9,9 v20 a9,9 0 0 1 -9,9 h-30 l-12,12 v-12 h-6 a9,9 0 0 1 -9,-9 v-20 a9,9 0 0 1 9,-9 Z" fill="var(--sable)"/>
-            <circle cx="119" cy="90" r="3" fill="var(--vert)"/>
-            <circle cx="130" cy="90" r="3" fill="var(--vert)"/>
-            <circle cx="141" cy="90" r="3" fill="var(--vert)"/>
-            <g fill="var(--terre)" opacity="0.7">
-              <path d="M150,40 l2,5 l5,2 l-5,2 l-2,5 l-2,-5 l-5,-2 l5,-2 Z"/>
-              <path d="M35,95 l1.5,3.5 l3.5,1.5 l-3.5,1.5 l-1.5,3.5 l-1.5,-3.5 l-3.5,-1.5 l3.5,-1.5 Z"/>
-            </g>
-          </svg>
-          <h3>Aucun message pour le moment</h3>
-          <div>Vos conversations apparaîtront ici lorsque vous échangerez avec d'autres utilisateurs.</div>
-          <button type="button" class="btn-outline" id="btnCommencerConversation"><svg class="ic"><use href="#ic-pencil"/></svg>Commencer une conversation</button>
-        </div>`;
-      surEvenement('btnCommencerConversation', 'click', () => goTo('recherche'));
+      container.innerHTML = '<div class="empty-state">Aucune conversation pour le moment.</div>';
       return;
     }
     container.innerHTML = convs.map(c => `
@@ -578,29 +447,6 @@ function chargerConversations() {
     });
   });
 }
-
-surEvenement('btnNotificationsMessages', 'click', () => goTo('notifications'));
-surEvenement('btnNouvelleConversation', 'click', () => goTo('recherche'));
-
-surEvenement('messagesSearchInput', 'input', (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  document.querySelectorAll('#listeConversations .conv').forEach(el => {
-    el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? 'flex' : 'none';
-  });
-});
-
-document.querySelectorAll('.tabs-pill .tab-opt[data-onglet]').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tabs-pill .tab-opt[data-onglet]').forEach(t => t.classList.remove('on'));
-    tab.classList.add('on');
-    if (tab.dataset.onglet === 'tous') {
-      chargerConversations();
-    } else {
-      document.getElementById('listeConversations').innerHTML =
-        '<div class="empty-state">Cette fonctionnalité arrive bientôt.</div>';
-    }
-  });
-});
 
 function ouvrirChat(convId, titre) {
   conversationCouranteId = convId;
@@ -638,14 +484,11 @@ function afficherNotaires(notaires, messageVide) {
   }
   container.innerHTML = notaires.map(n => `
     <div class="not-item" data-id="${n.id}">
-      <div class="avatar-wrap">
-        <div class="avatar">${initiales(n.nom || 'N')}</div>
-        ${n.verifie ? '<div class="verif-badge"><svg class="ic"><use href="#ic-check-sm"/></svg></div>' : ''}
-      </div>
+      <div class="avatar">${initiales(n.nom || 'N')}</div>
       <div class="info">
         <div class="name">${escHTML(n.nom || '')}</div>
-        <div class="ville"><svg class="ic"><use href="#ic-pin"/></svg>${escHTML(n.ville || '')}</div>
-        <span class="tag tag-ok" style="margin-top:6px;"><svg class="ic"><use href="#ic-scale"/></svg>${escHTML(n.specialite || '')}</span>
+        <div class="ville">${escHTML(n.ville || '')}</div>
+        <span class="tag tag-terre" style="margin-top:5px;"><svg class="ic"><use href="#ic-seal"/></svg>${escHTML(n.specialite || '')}</span>
       </div>
       <button class="go"><svg class="ic"><use href="#ic-arrow-right"/></svg></button>
     </div>`).join('');
@@ -669,8 +512,17 @@ function chargerNotaires() {
 }
 
 surEvenement('btnRechercheNotaire', 'click', () => {
+  const bar = document.getElementById('notaireSearchBar');
   const input = document.getElementById('notaireSearchInput');
-  if (input) input.focus();
+  const estVisible = bar.style.display !== 'none';
+  if (estVisible) {
+    bar.style.display = 'none';
+    input.value = '';
+    afficherNotaires(notairesCourants, 'Aucun notaire référencé pour le moment.');
+  } else {
+    bar.style.display = 'flex';
+    input.focus();
+  }
 });
 
 surEvenement('notaireSearchInput', 'input', (e) => {
@@ -725,7 +577,7 @@ function chargerMesAnnonces() {
     terrains.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     container.innerHTML = terrains.map(t => `
       <div class="m-card" data-id="${t.id}">
-        <div class="m-thumb"><div class="m-pin"><svg class="ic"><use href="#ic-pin"/></svg></div></div>
+        <div class="m-thumb"><svg class="ic" style="width:34px;height:34px;"><use href="#ic-pin"/></svg></div>
         <div class="m-info">
           <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(labelStatut(t.statutJuridique))}</div>
           <div class="m-title">${escHTML(t.titre || '')}</div>
@@ -916,8 +768,6 @@ surEvenement('btnSupprimerCompte', 'click', () => {
   const supprimerDonneesEtCompte = () => {
     return db.collection('terrains').where('vendeurId', '==', user.uid).get()
       .then(snap => Promise.all(snap.docs.map(d => supprimerTerrain(d.id))))
-      .then(() => db.collection('users').doc(user.uid).collection('favoris').get())
-      .then(snap => Promise.all(snap.docs.map(d => d.ref.delete())))
       .then(() => db.collection('users').doc(user.uid).delete())
       .then(() => user.delete());
   };
