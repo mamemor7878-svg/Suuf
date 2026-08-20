@@ -23,6 +23,14 @@ workflows:
         script: |
           cd ios
           agvtool new-version -all $BUILD_NUMBER
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Set up signing certificate
+        script: |
+          keychain initialize
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
