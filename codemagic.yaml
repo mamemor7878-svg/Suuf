@@ -36,10 +36,15 @@ workflows:
           xcode-project use-profiles
       - name: Build ipa for distribution
         script: |
+          set +e
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --verbose
+            --scheme "$XCODE_SCHEME"
+          BUILD_STATUS=$?
+          echo "----- XCODEBUILD RAW LOG -----"
+          cat /tmp/xcodebuild_logs/*.log || true
+          echo "----- END XCODEBUILD RAW LOG -----"
+          exit $BUILD_STATUS
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
