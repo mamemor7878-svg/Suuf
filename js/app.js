@@ -10,7 +10,16 @@ let methodeAuth = 'email'; // 'email' | 'telephone'
 let terrainEnEditionId = null; // id du terrain en cours de modification, ou null si on publie une nouvelle annonce
 let entreeParEdition = false; // évite que goTo('publier') réinitialise le formulaire quand on arrive via "Modifier"
 
+// Écrans qui nécessitent obligatoirement un compte connecté. Explorer, la fiche
+// d'un terrain et l'annuaire des notaires restent consultables librement, sans
+// connexion (conformité App Store : un compte ne doit être exigé que pour les
+// fonctionnalités qui en ont réellement besoin).
+const ECRANS_PROTEGES = ['publier', 'messages', 'chat', 'profil', 'mes-annonces', 'mes-demandes', 'notifications', 'confidentialite'];
+
 function goTo(screenName) {
+  if (ECRANS_PROTEGES.includes(screenName) && !auth.currentUser) {
+    screenName = 'auth';
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === screenName));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.go === screenName));
   if (screenName === 'recherche') chargerTerrains();
@@ -263,11 +272,15 @@ auth.onAuthStateChanged((user) => {
       goTo('recherche');
     }
   } else {
-    bottomnav.style.display = 'none';
-    goTo('auth');
+    // Pas de compte connecté : l'utilisateur peut quand même explorer les
+    // annonces librement. La connexion ne sera demandée qu'au moment où il
+    // essaiera d'accéder à une fonctionnalité qui la nécessite réellement
+    // (Publier, Messages, Profil, Notaires → solliciter, Contacter un vendeur).
+    bottomnav.style.display = 'flex';
     document.getElementById('phoneEtapeNumero').style.display = 'block';
     document.getElementById('phoneEtapeCode').style.display = 'none';
     document.getElementById('phoneEtapeProfil').style.display = 'none';
+    goTo('recherche');
   }
 });
 
@@ -378,6 +391,7 @@ function initiales(nom) {
 }
 
 surEvenement('btnContacterVendeur', 'click', () => {
+  if (!auth.currentUser) { goTo('auth'); return; }
   if (!terrainCourantId) return;
   getTerrain(terrainCourantId).then(t => {
     demarrerConversation(terrainCourantId, t.vendeurId).then(convId => ouvrirChat(convId, t.vendeurNom || 'Vendeur'));
@@ -494,6 +508,7 @@ function afficherNotaires(notaires, messageVide) {
     </div>`).join('');
   container.querySelectorAll('.not-item').forEach(el => {
     el.addEventListener('click', () => {
+      if (!auth.currentUser) { goTo('auth'); return; }
       if (!terrainCourantId) { alert('Ouvre d\'abord un terrain pour solliciter un notaire.'); return; }
       solliciterNotaire(terrainCourantId, el.dataset.id).then(() => {
         alert('Demande envoyée au notaire.');
