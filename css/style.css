@@ -23,7 +23,7 @@ button{font-family:inherit;}
 
 .topbar{
   padding:22px 20px 14px; display:flex; align-items:center; justify-content:space-between;
-  position:sticky; top:0; background:var(--sable-clair); z-index:10; border-bottom:1px solid transparent;
+  position:sticky; top:0; background:var(--sable-clair); z-index:1500; border-bottom:1px solid transparent;
 }
 .topbar h2{font-size:20px; font-weight:600;}
 .icon-btn{
@@ -33,7 +33,7 @@ button{font-family:inherit;}
 }
 
 .bottom-nav{
-  position:fixed; bottom:16px; left:16px; right:16px; max-width:448px; margin:0 auto; z-index:40;
+  position:fixed; bottom:16px; left:16px; right:16px; max-width:448px; margin:0 auto; z-index:1500;
   background:rgba(43,38,34,0.94); backdrop-filter:blur(8px);
   border-radius:100px; padding:10px 8px;
   display:flex; justify-content:space-around; align-items:center;
@@ -45,6 +45,11 @@ button{font-family:inherit;}
 }
 .nav-item.active{color:var(--sable-clair);}
 .nav-item svg.ic{width:19px; height:19px;}
+.nav-icon-wrap{position:relative; display:inline-flex;}
+.nav-badge{
+  position:absolute; top:-2px; right:-4px; width:8px; height:8px; border-radius:50%;
+  background:#E24C3B; border:1.5px solid rgba(43,38,34,0.94);
+}
 
 /* ===== badges / chips ===== */
 .tag{
@@ -140,6 +145,7 @@ button{font-family:inherit;}
 .btn-s{background:var(--anthracite); color:#fff;}
 .btn-p svg.ic, .btn-s svg.ic{width:15px; height:15px;}
 .btn-full{width:100%;}
+.btn-p:disabled, .btn-s:disabled{opacity:.6; cursor:not-allowed;}
 
 /* ===== formulaires ===== */
 .steps-dots{display:flex; gap:6px; padding:0 20px 20px;}
@@ -165,6 +171,9 @@ button{font-family:inherit;}
 .conv .name{font-weight:600; font-size:14px;}
 .conv .last{font-size:12px; opacity:.55; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;}
 .conv .time{font-size:10.5px; opacity:.4; margin-left:auto;}
+.conv-non-lu .name{font-weight:700;}
+.conv-non-lu .last{opacity:.85; font-weight:500; color:var(--anthracite);}
+.dot-non-lu{display:inline-block; width:7px; height:7px; border-radius:50%; background:#E24C3B; margin-left:6px; vertical-align:middle;}
 
 .chat-thread{padding:14px 20px; display:flex; flex-direction:column; gap:10px;}
 .bubble{max-width:75%; padding:10px 14px; border-radius:16px; font-size:13.5px;}
