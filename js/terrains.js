@@ -19,9 +19,15 @@ function publierTerrain(data, fichierTitre, photos) {
       titre: data.titre,
       superficie: data.superficie,
       prix: data.prix,
-      statutJuridique: data.statutJuridique, // "titre_foncier" | "bail" | "non_loti"
+      statutJuridique: data.statutJuridique, // "titre_foncier" | "bail" | "non_loti" (terrains uniquement)
+      typeBien: data.typeBien || 'terrain', // "terrain" | "logement"
+      typeTransaction: data.typeTransaction || 'vente', // "vente" | "location"
+      typeLogement: data.typeLogement || null, // "maison" | "appartement" (logements uniquement)
+      chambres: data.chambres != null ? data.chambres : null,
+      meuble: !!data.meuble,
       localisation: data.localisation, // {lat, lng}
       zone: data.zone,
+      description: data.description || '',
       documentsUrl: urls,
       scoreConfiance: {
         titreVerifie: false,
@@ -59,6 +65,11 @@ function modifierTerrain(terrainId, data, fichierTitre) {
     zone: data.zone,
     superficie: data.superficie,
     statutJuridique: data.statutJuridique,
+    typeBien: data.typeBien || 'terrain',
+    typeTransaction: data.typeTransaction || 'vente',
+    typeLogement: data.typeLogement || null,
+    chambres: data.chambres != null ? data.chambres : null,
+    meuble: !!data.meuble,
     prix: data.prix,
     description: data.description,
     localisation: data.localisation
