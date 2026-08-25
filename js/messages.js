@@ -30,22 +30,31 @@ function envoyerMessage(conversationId, texte) {
   });
 }
 
-function ecouterMessages(conversationId, callback) {
+function ecouterMessages(conversationId, callback, onError) {
   return db.collection('conversations').doc(conversationId)
     .collection('messages')
     .orderBy('createdAt', 'asc')
     .onSnapshot(snap => {
       const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       callback(messages);
+    }, (err) => {
+      console.error('Erreur ecouterMessages :', err);
+      if (onError) onError(err);
     });
 }
 
-function mesConversations(callback) {
+function mesConversations(callback, onError) {
   const userId = auth.currentUser.uid;
   return db.collection('conversations')
     .where('participants', 'array-contains', userId)
     .orderBy('dernierMessageAt', 'desc')
     .onSnapshot(snap => {
       callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      // Erreur la plus probable ici : index composite Firestore manquant pour
+      // (participants array-contains + orderBy dernierMessageAt). Firestore renvoie
+      // alors un message d'erreur contenant un lien direct pour créer l'index.
+      console.error('Erreur mesConversations :', err);
+      if (onError) onError(err);
     });
 }
