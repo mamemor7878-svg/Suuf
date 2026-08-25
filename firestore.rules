@@ -28,8 +28,15 @@ service cloud.firestore {
       allow create: if estConnecte();
 
       match /messages/{messageId} {
-        allow read: if estConnecte();
-        allow create: if estConnecte() && request.auth.uid == request.resource.data.expediteurId;
+        // Avant : n'importe quel utilisateur connecté pouvait lire (ou écrire dans) la
+        // messagerie de n'importe quelle conversation, pas seulement la sienne, dès
+        // lors qu'il connaissait/devinait l'identifiant de la conversation. On exige
+        // maintenant d'être un des deux participants, comme pour le document parent.
+        function estParticipant() {
+          return request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+        }
+        allow read: if estConnecte() && estParticipant();
+        allow create: if estConnecte() && estParticipant() && request.auth.uid == request.resource.data.expediteurId;
       }
     }
 

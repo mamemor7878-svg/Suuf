@@ -329,6 +329,7 @@ auth.onAuthStateChanged((user) => {
           bottomnav.style.display = 'flex';
           goTo('recherche');
           demarrerEcouteBadgeMessages();
+          demanderPermissionPush();
         } else {
           bottomnav.style.display = 'none';
           goTo('auth');
@@ -346,6 +347,7 @@ auth.onAuthStateChanged((user) => {
       bottomnav.style.display = 'flex';
       goTo('recherche');
       demarrerEcouteBadgeMessages();
+      demanderPermissionPush();
     }
   } else {
     // Pas de compte connecté : l'utilisateur peut quand même explorer les
