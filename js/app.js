@@ -10,6 +10,13 @@ let methodeAuth = 'email'; // 'email' | 'telephone'
 let terrainEnEditionId = null; // id du terrain en cours de modification, ou null si on publie une nouvelle annonce
 let entreeParEdition = false; // évite que goTo('publier') réinitialise le formulaire quand on arrive via "Modifier"
 
+// Sélections courantes du formulaire Publier (bien / transaction / logement / meublé).
+// Lues au clic sur les sélecteurs, utilisées à la soumission et à l'édition d'une annonce.
+let pTypeBienActuel = 'terrain'; // "terrain" | "logement"
+let pTypeTransactionActuel = 'location'; // "vente" | "location" (logements uniquement)
+let pTypeLogementActuel = 'maison'; // "maison" | "appartement"
+let pMeubleActuel = false;
+
 // Écrans qui nécessitent obligatoirement un compte connecté. Explorer, la fiche
 // d'un terrain et l'annuaire des notaires restent consultables librement, sans
 // connexion (conformité App Store : un compte ne doit être exigé que pour les
@@ -33,10 +40,10 @@ function goTo(screenName) {
     initCartePublier();
     if (!entreeParEdition) {
       terrainEnEditionId = null;
-      document.getElementById('publierTitre').textContent = 'Publier un terrain';
       document.getElementById('publierSubmitBtn').textContent = "Publier l'annonce";
       document.getElementById('formPublier').reset();
       reinitialiserCartePublier();
+      reinitialiserTypeBienPublier();
     }
     entreeParEdition = false;
     if (mapPublier) setTimeout(() => mapPublier.resize(), 50);
@@ -44,6 +51,73 @@ function goTo(screenName) {
 }
 document.querySelectorAll('[data-go]').forEach(el => {
   el.addEventListener('click', () => goTo(el.dataset.go));
+});
+
+// ===== PUBLIER : type de bien / transaction (terrain vs maison-appartement, vente vs location) =====
+// Remet les sélecteurs du formulaire Publier à leur valeur par défaut (Terrain / Vente),
+// utilisé à chaque entrée sur l'écran Publier pour une nouvelle annonce (pas en édition).
+function reinitialiserTypeBienPublier() {
+  pTypeBienActuel = 'terrain';
+  pTypeTransactionActuel = 'location';
+  pTypeLogementActuel = 'maison';
+  pMeubleActuel = false;
+  document.querySelectorAll('#pTypeBienPicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.typebien === 'terrain'));
+  document.querySelectorAll('#pTypeTransactionPicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.typetransaction === 'location'));
+  document.querySelectorAll('#pTypeLogementPicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.typelogement === 'maison'));
+  document.querySelectorAll('#pMeublePicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.meuble === 'non'));
+  mettreAJourVisibiliteFormPublier();
+}
+
+// Affiche/masque les sections du formulaire Publier selon le type de bien choisi, et adapte
+// les libellés (Prix vs Loyer mensuel, document titre foncier vs photos du logement).
+function mettreAJourVisibiliteFormPublier() {
+  const estLogement = pTypeBienActuel === 'logement';
+  document.getElementById('pTypeTransactionWrap').style.display = estLogement ? 'block' : 'none';
+  document.getElementById('pTypeLogementWrap').style.display = estLogement ? 'block' : 'none';
+  document.getElementById('pChambresWrap').style.display = estLogement ? 'block' : 'none';
+  document.getElementById('pStatutWrap').style.display = estLogement ? 'none' : 'block';
+
+  const enLocation = estLogement && pTypeTransactionActuel === 'location';
+  document.getElementById('pPrixLabel').textContent = enLocation ? 'Loyer mensuel (FCFA)' : 'Prix (FCFA)';
+  document.getElementById('pFichierTitreLabel').innerHTML = estLogement
+    ? 'Photo du logement <span style="opacity:.5; font-weight:400;">(optionnel)</span>'
+    : 'Document du titre foncier <span style="opacity:.5; font-weight:400;">(optionnel pour l\'instant)</span>';
+
+  const titreEcran = document.getElementById('publierTitre');
+  if (!terrainEnEditionId) {
+    titreEcran.textContent = estLogement ? 'Publier un logement' : 'Publier un terrain';
+  }
+}
+
+document.querySelectorAll('#pTypeBienPicker .role-opt[data-typebien]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('#pTypeBienPicker .role-opt').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+    pTypeBienActuel = el.dataset.typebien;
+    mettreAJourVisibiliteFormPublier();
+  });
+});
+document.querySelectorAll('#pTypeTransactionPicker .role-opt[data-typetransaction]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('#pTypeTransactionPicker .role-opt').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+    pTypeTransactionActuel = el.dataset.typetransaction;
+    mettreAJourVisibiliteFormPublier();
+  });
+});
+document.querySelectorAll('#pTypeLogementPicker .role-opt[data-typelogement]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('#pTypeLogementPicker .role-opt').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+    pTypeLogementActuel = el.dataset.typelogement;
+  });
+});
+document.querySelectorAll('#pMeublePicker .role-opt[data-meuble]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('#pMeublePicker .role-opt').forEach(o => o.classList.remove('on'));
+    el.classList.add('on');
+    pMeubleActuel = el.dataset.meuble === 'oui';
+  });
 });
 
 // Attache un écouteur uniquement si l'élément existe, pour éviter qu'une page
@@ -289,12 +363,23 @@ function chargerTerrains(filtres = {}) {
   const container = document.getElementById('listeTerrains');
   container.innerHTML = '<div class="loader">Chargement des terrains…</div>';
 
-  rechercherTerrains(filtres).then(terrains => {
-    if (terrains.length === 0) {
-      container.innerHTML = '<div class="empty-state">Aucun terrain disponible pour le moment.</div>';
+  // Le filtrage par typeBien / typeTransaction se fait côté client (pas dans la requête
+  // Firestore) car les annonces publiées avant cette fonctionnalité n'ont pas ces champs :
+  // un filtre serveur strict les ferait disparaître à tort. rechercherTerrains ne reçoit donc
+  // que les filtres qu'elle gérait déjà (statutJuridique, zone).
+  rechercherTerrains({ statutJuridique: filtres.statutJuridique, zone: filtres.zone }).then(terrains => {
+    let resultats = terrains;
+    if (filtres.typeBien) {
+      resultats = resultats.filter(t => (t.typeBien || 'terrain') === filtres.typeBien);
+    }
+    if (filtres.typeTransaction) {
+      resultats = resultats.filter(t => (t.typeTransaction || 'vente') === filtres.typeTransaction);
+    }
+    if (resultats.length === 0) {
+      container.innerHTML = '<div class="empty-state">Aucune annonce disponible pour le moment.</div>';
       return;
     }
-    container.innerHTML = terrains.map(carteTerrainHTML).join('');
+    container.innerHTML = resultats.map(carteTerrainHTML).join('');
     container.querySelectorAll('.m-card').forEach(card => {
       card.addEventListener('click', () => ouvrirTerrain(card.dataset.id));
     });
@@ -304,18 +389,27 @@ function chargerTerrains(filtres = {}) {
 }
 
 function carteTerrainHTML(t) {
-  const fiable = t.scoreConfiance && t.scoreConfiance.titreVerifie;
-  const tagHTML = fiable
-    ? '<span class="tag tag-ok"><svg class="ic"><use href="#ic-check-seal"/></svg>Fiable</span>'
-    : '<span class="tag tag-warn"><svg class="ic"><use href="#ic-hourglass"/></svg>À vérifier</span>';
+  const estLogement = (t.typeBien || 'terrain') === 'logement';
+  const enLocation = estLogement && t.typeTransaction === 'location';
+
+  const tagHTML = estLogement
+    ? `<span class="tag ${enLocation ? 'tag-terre' : 'tag-neutral'}">${enLocation ? 'Location' : 'Vente'}</span>`
+    : (t.scoreConfiance && t.scoreConfiance.titreVerifie
+        ? '<span class="tag tag-ok"><svg class="ic"><use href="#ic-check-seal"/></svg>Fiable</span>'
+        : '<span class="tag tag-warn"><svg class="ic"><use href="#ic-hourglass"/></svg>À vérifier</span>');
+
+  const sousTitre = estLogement
+    ? labelTypeLogement(t.typeLogement) + (t.chambres ? ` · ${t.chambres} ch.` : '')
+    : labelStatut(t.statutJuridique);
+
   return `
     <div class="m-card" data-id="${t.id}">
-      <div class="m-thumb"><svg class="ic" style="width:34px;height:34px;"><use href="#ic-pin"/></svg></div>
+      <div class="m-thumb${estLogement ? ' t2' : ''}"><svg class="ic" style="width:34px;height:34px;"><use href="#${estLogement ? 'ic-doc' : 'ic-pin'}"/></svg></div>
       <div class="m-info">
-        <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(labelStatut(t.statutJuridique))}</div>
+        <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(sousTitre)}</div>
         <div class="m-title">${escHTML(t.titre || '')}</div>
         <div class="m-row">
-          <span class="m-price">${formaterFCFA(t.prix)}</span>
+          <span class="m-price">${prixAffiche(t)}</span>
           ${tagHTML}
         </div>
       </div>
@@ -325,9 +419,17 @@ function carteTerrainHTML(t) {
 function labelStatut(s) {
   return { titre_foncier: 'Titre foncier', bail: 'Bail', non_loti: 'Zone non lotie' }[s] || s || '';
 }
+function labelTypeLogement(s) {
+  return { maison: 'Maison', appartement: 'Appartement' }[s] || 'Logement';
+}
 function formaterFCFA(n) {
   if (!n) return '—';
   return new Intl.NumberFormat('fr-FR').format(n) + ' FCFA';
+}
+// Prix à afficher pour une annonce : loyer mensuel pour une location, prix de vente sinon.
+function prixAffiche(t) {
+  const base = formaterFCFA(t.prix);
+  return (t.typeTransaction === 'location' && base !== '—') ? base + ' / mois' : base;
 }
 function escHTML(str) {
   const d = document.createElement('div');
@@ -340,7 +442,15 @@ document.querySelectorAll('.chip[data-filtre]').forEach(chip => {
     document.querySelectorAll('.chip[data-filtre]').forEach(c => c.classList.remove('on'));
     chip.classList.add('on');
     const f = chip.dataset.filtre;
-    chargerTerrains(f === 'tous' ? {} : { statutJuridique: f });
+    const filtresParChip = {
+      tous: {},
+      terrain: { typeBien: 'terrain' },
+      logement: { typeBien: 'logement' },
+      location: { typeTransaction: 'location' },
+      titre_foncier: { statutJuridique: 'titre_foncier' },
+      bail: { statutJuridique: 'bail' }
+    };
+    chargerTerrains(filtresParChip[f] || {});
   });
 });
 
@@ -359,25 +469,47 @@ function ouvrirTerrain(id) {
     }
     afficherCarteTerrain(t.localisation);
     const sc = t.scoreConfiance || {};
-    sheet.innerHTML = `
-      <div class="zone">${escHTML(t.zone || '')} · ${escHTML(labelStatut(t.statutJuridique))}</div>
-      <h1>${escHTML(t.titre || '')}</h1>
+    const estLogement = (t.typeBien || 'terrain') === 'logement';
+    const enLocation = estLogement && t.typeTransaction === 'location';
+
+    // Solliciter un notaire n'a de sens que pour une vente de terrain/logement (vérification
+    // de titre) : pas nécessaire pour une simple mise en location.
+    document.getElementById('btnSolliciterNotaire').style.display = enLocation ? 'none' : '';
+
+    const statGridHTML = estLogement ? `
+      <div class="stat-grid">
+        <div class="stat"><div class="v">${t.superficie || '—'} m²</div><div class="l">Superficie</div></div>
+        <div class="stat"><div class="v">${t.chambres || '—'}</div><div class="l">Chambres</div></div>
+        <div class="stat"><div class="v">${t.meuble ? 'Oui' : 'Non'}</div><div class="l">Meublé</div></div>
+      </div>` : `
       <div class="stat-grid">
         <div class="stat"><div class="v">${t.superficie || '—'} m²</div><div class="l">Superficie</div></div>
         <div class="stat"><div class="v">${t.distanceRoute || '—'}</div><div class="l">De la route</div></div>
         <div class="stat"><div class="v">${t.prix && t.superficie ? Math.round(t.prix / t.superficie) : '—'}</div><div class="l">FCFA / m²</div></div>
-      </div>
+      </div>`;
+
+    const badgesHTML = estLogement ? `
+      <div class="badges-row">
+        <span class="tag ${enLocation ? 'tag-terre' : 'tag-neutral'}">${enLocation ? 'Location' : 'Vente'}</span>
+        <span class="tag tag-neutral">${labelTypeLogement(t.typeLogement)}</span>
+      </div>` : `
       <div class="badges-row">
         <span class="tag ${sc.titreVerifie ? 'tag-ok' : 'tag-warn'}"><svg class="ic"><use href="#ic-doc"/></svg>${labelStatut(t.statutJuridique)}</span>
         <span class="tag ${sc.bornageGPS ? 'tag-ok' : 'tag-warn'}"><svg class="ic"><use href="#ic-target"/></svg>Bornage GPS</span>
         <span class="tag ${(sc.litiges === 0) ? 'tag-ok' : 'tag-warn'}"><svg class="ic"><use href="#ic-scale"/></svg>${sc.litiges === 0 ? '0 litige' : (sc.litiges || '?') + ' litige(s)'}</span>
-      </div>
+      </div>`;
+
+    sheet.innerHTML = `
+      <div class="zone">${escHTML(t.zone || '')} · ${escHTML(estLogement ? (enLocation ? 'À louer' : 'À vendre') : labelStatut(t.statutJuridique))}</div>
+      <h1>${escHTML(t.titre || '')}</h1>
+      ${statGridHTML}
+      ${badgesHTML}
       <div class="desc">${escHTML(t.description || 'Aucune description fournie.')}</div>
       <div class="seller">
         <div class="avatar">${initiales(t.vendeurNom || 'Vendeur')}</div>
         <div>
           <div class="name">${escHTML(t.vendeurNom || 'Vendeur')}</div>
-          <div class="sub">Vendeur · Prix : ${formaterFCFA(t.prix)}</div>
+          <div class="sub">${estLogement ? 'Propriétaire' : 'Vendeur'} · ${prixAffiche(t)}</div>
         </div>
       </div>`;
   }).catch(err => {
@@ -408,11 +540,17 @@ surEvenement('formPublier', 'submit', (e) => {
   const errEl = document.getElementById('publierError');
   errEl.classList.remove('show');
 
+  const estLogement = pTypeBienActuel === 'logement';
   const data = {
     titre: document.getElementById('pTitre').value.trim(),
     zone: document.getElementById('pZone').value.trim(),
     superficie: Number(document.getElementById('pSuperficie').value),
-    statutJuridique: document.getElementById('pStatut').value,
+    statutJuridique: estLogement ? null : document.getElementById('pStatut').value,
+    typeBien: pTypeBienActuel,
+    typeTransaction: estLogement ? pTypeTransactionActuel : 'vente',
+    typeLogement: estLogement ? pTypeLogementActuel : null,
+    chambres: estLogement && document.getElementById('pChambres').value ? Number(document.getElementById('pChambres').value) : null,
+    meuble: estLogement ? pMeubleActuel : false,
     prix: Number(document.getElementById('pPrix').value),
     description: document.getElementById('pDescription').value.trim(),
     localisation: pinSelectionne // {lat, lng} choisi sur la carte, ou null si non renseigné
@@ -427,6 +565,7 @@ surEvenement('formPublier', 'submit', (e) => {
   action.then(() => {
     document.getElementById('formPublier').reset();
     reinitialiserCartePublier();
+    reinitialiserTypeBienPublier();
     terrainEnEditionId = null;
     goTo(idEnEdition ? 'mes-annonces' : 'recherche');
   }).catch(err => {
@@ -441,9 +580,15 @@ surEvenement('pFichier', 'change', (e) => {
 });
 
 // ===== MESSAGES =====
+let unsubConversations = null;
 function chargerConversations() {
   const container = document.getElementById('listeConversations');
-  mesConversations((convs) => {
+  container.innerHTML = '<div class="loader">Chargement…</div>';
+  // Sans ce désabonnement, revenir plusieurs fois sur l'onglet Messages empilait un
+  // nouvel écouteur temps réel à chaque fois (fuite, et rendus redondants).
+  if (unsubConversations) unsubConversations();
+
+  unsubConversations = mesConversations((convs) => {
     if (convs.length === 0) {
       container.innerHTML = '<div class="empty-state">Aucune conversation pour le moment.</div>';
       return;
@@ -459,19 +604,34 @@ function chargerConversations() {
     container.querySelectorAll('.conv').forEach(el => {
       el.addEventListener('click', () => ouvrirChat(el.dataset.id, 'Conversation'));
     });
+  }, (err) => {
+    // Le cas le plus probable : un index composite Firestore manquant pour cette
+    // requête (participants array-contains + tri par dernierMessageAt). Sans cette
+    // gestion d'erreur, l'écran restait bloqué sur "Chargement…" indéfiniment, sans
+    // aucun signal visible pour l'utilisateur.
+    container.innerHTML = `<div class="empty-state">Impossible de charger les messages : ${escHTML(err.message)}</div>`;
   });
 }
 
+let unsubChat = null;
 function ouvrirChat(convId, titre) {
   conversationCouranteId = convId;
   document.getElementById('chatTitre').textContent = titre;
   goTo('chat');
   const thread = document.getElementById('chatThread');
-  ecouterMessages(convId, (messages) => {
+  thread.innerHTML = '<div class="loader">Chargement…</div>';
+  // Sans ce désabonnement, ouvrir successivement plusieurs conversations laissait les
+  // écouteurs des précédentes actifs : un nouveau message arrivant dans une ancienne
+  // conversation pouvait alors écraser à tort le fil actuellement affiché.
+  if (unsubChat) unsubChat();
+
+  unsubChat = ecouterMessages(convId, (messages) => {
     thread.innerHTML = messages.map(m => `
       <div class="bubble ${m.expediteurId === auth.currentUser.uid ? 'mine' : 'theirs'}">${escHTML(m.texte)}</div>
     `).join('');
     thread.scrollTop = thread.scrollHeight;
+  }, (err) => {
+    thread.innerHTML = `<div class="empty-state">Impossible de charger la conversation : ${escHTML(err.message)}</div>`;
   });
 }
 
@@ -483,8 +643,15 @@ function envoyerMessageDepuisInput() {
   const input = document.getElementById('chatInput');
   const texte = input.value.trim();
   if (!texte || !conversationCouranteId) return;
-  envoyerMessage(conversationCouranteId, texte);
   input.value = '';
+  envoyerMessage(conversationCouranteId, texte).catch(err => {
+    // Avant ce correctif, le champ était vidé immédiatement même si l'envoi échouait
+    // (ex. règles Firestore, coupure réseau) : le message semblait envoyé alors qu'il
+    // ne l'était pas. On restaure le texte pour permettre de réessayer.
+    console.error('Erreur envoi message :', err);
+    alert("Le message n'a pas pu être envoyé : " + err.message);
+    input.value = texte;
+  });
 }
 
 // ===== NOTAIRES =====
@@ -590,14 +757,19 @@ function chargerMesAnnonces() {
       return;
     }
     terrains.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    container.innerHTML = terrains.map(t => `
+    container.innerHTML = terrains.map(t => {
+      const estLogement = (t.typeBien || 'terrain') === 'logement';
+      const sousTitre = estLogement
+        ? labelTypeLogement(t.typeLogement) + (t.chambres ? ` · ${t.chambres} ch.` : '')
+        : labelStatut(t.statutJuridique);
+      return `
       <div class="m-card" data-id="${t.id}">
-        <div class="m-thumb"><svg class="ic" style="width:34px;height:34px;"><use href="#ic-pin"/></svg></div>
+        <div class="m-thumb${estLogement ? ' t2' : ''}"><svg class="ic" style="width:34px;height:34px;"><use href="#${estLogement ? 'ic-doc' : 'ic-pin'}"/></svg></div>
         <div class="m-info">
-          <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(labelStatut(t.statutJuridique))}</div>
+          <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(sousTitre)}</div>
           <div class="m-title">${escHTML(t.titre || '')}</div>
           <div class="m-row">
-            <span class="m-price">${formaterFCFA(t.prix)}</span>
+            <span class="m-price">${prixAffiche(t)}</span>
             <span class="tag ${t.statut === 'disponible' ? 'tag-ok' : 'tag-neutral'}">${t.statut === 'disponible' ? 'En ligne' : (t.statut || '—')}</span>
           </div>
           <div class="m-actions">
@@ -605,7 +777,8 @@ function chargerMesAnnonces() {
             <button type="button" class="m-action-btn m-action-danger" data-action="supprimer" data-id="${t.id}"><svg class="ic"><use href="#ic-trash"/></svg>Supprimer</button>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     container.querySelectorAll('.m-card').forEach(card => {
       card.addEventListener('click', () => ouvrirTerrain(card.dataset.id));
     });
@@ -641,6 +814,18 @@ function ouvrirEditionTerrain(id) {
     document.getElementById('pStatut').value = t.statutJuridique || 'titre_foncier';
     document.getElementById('pPrix').value = t.prix || '';
     document.getElementById('pDescription').value = t.description || '';
+    document.getElementById('pChambres').value = t.chambres || '';
+
+    pTypeBienActuel = t.typeBien || 'terrain';
+    pTypeTransactionActuel = t.typeTransaction || 'vente';
+    pTypeLogementActuel = t.typeLogement || 'maison';
+    pMeubleActuel = !!t.meuble;
+    document.querySelectorAll('#pTypeBienPicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.typebien === pTypeBienActuel));
+    document.querySelectorAll('#pTypeTransactionPicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.typetransaction === pTypeTransactionActuel));
+    document.querySelectorAll('#pTypeLogementPicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.typelogement === pTypeLogementActuel));
+    document.querySelectorAll('#pMeublePicker .role-opt').forEach(o => o.classList.toggle('on', o.dataset.meuble === (pMeubleActuel ? 'oui' : 'non')));
+    mettreAJourVisibiliteFormPublier();
+
     document.getElementById('publierTitre').textContent = "Modifier l'annonce";
     document.getElementById('publierSubmitBtn').textContent = 'Enregistrer les modifications';
 
