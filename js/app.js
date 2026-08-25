@@ -328,6 +328,7 @@ auth.onAuthStateChanged((user) => {
         if (doc.exists) {
           bottomnav.style.display = 'flex';
           goTo('recherche');
+          demarrerEcouteBadgeMessages();
         } else {
           bottomnav.style.display = 'none';
           goTo('auth');
@@ -344,6 +345,7 @@ auth.onAuthStateChanged((user) => {
     } else {
       bottomnav.style.display = 'flex';
       goTo('recherche');
+      demarrerEcouteBadgeMessages();
     }
   } else {
     // Pas de compte connecté : l'utilisateur peut quand même explorer les
@@ -355,18 +357,34 @@ auth.onAuthStateChanged((user) => {
     document.getElementById('phoneEtapeCode').style.display = 'none';
     document.getElementById('phoneEtapeProfil').style.display = 'none';
     goTo('recherche');
+    arreterEcouteBadgeMessages();
   }
 });
 
 // ===== RECHERCHE =====
-function chargerTerrains(filtres = {}) {
+
+// Enlève les accents et met en minuscules, pour que taper "thies" retrouve aussi
+// "Thiès" (et inversement) dans la barre de recherche de l'onglet Explorer.
+function normaliserTexte(s) {
+  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+// filtres === undefined (appel sans argument, ex. à l'entrée sur l'onglet Explorer) :
+// on réapplique le chip actif et le texte actuellement saisi, plutôt que de tout
+// réinitialiser silencieusement — sinon la liste affichée ne correspondrait plus à
+// ce qui est visuellement sélectionné (chip actif, texte dans la barre de recherche).
+function chargerTerrains(filtres) {
+  if (filtres === undefined) {
+    const inputRecherche = document.getElementById('rechercheZoneInput');
+    filtres = { ...filtreChipCourant(), texte: inputRecherche ? inputRecherche.value : '' };
+  }
   const container = document.getElementById('listeTerrains');
   container.innerHTML = '<div class="loader">Chargement des terrains…</div>';
 
-  // Le filtrage par typeBien / typeTransaction se fait côté client (pas dans la requête
-  // Firestore) car les annonces publiées avant cette fonctionnalité n'ont pas ces champs :
-  // un filtre serveur strict les ferait disparaître à tort. rechercherTerrains ne reçoit donc
-  // que les filtres qu'elle gérait déjà (statutJuridique, zone).
+  // Le filtrage par typeBien / typeTransaction / texte se fait côté client (pas dans la
+  // requête Firestore) car les annonces publiées avant cette fonctionnalité n'ont pas ces
+  // champs : un filtre serveur strict les ferait disparaître à tort. rechercherTerrains ne
+  // reçoit donc que les filtres qu'elle gérait déjà (statutJuridique, zone).
   rechercherTerrains({ statutJuridique: filtres.statutJuridique, zone: filtres.zone }).then(terrains => {
     let resultats = terrains;
     if (filtres.typeBien) {
@@ -374,6 +392,12 @@ function chargerTerrains(filtres = {}) {
     }
     if (filtres.typeTransaction) {
       resultats = resultats.filter(t => (t.typeTransaction || 'vente') === filtres.typeTransaction);
+    }
+    if (filtres.texte && filtres.texte.trim()) {
+      const q = normaliserTexte(filtres.texte);
+      resultats = resultats.filter(t =>
+        normaliserTexte(t.zone).includes(q) || normaliserTexte(t.titre).includes(q)
+      );
     }
     if (resultats.length === 0) {
       container.innerHTML = '<div class="empty-state">Aucune annonce disponible pour le moment.</div>';
@@ -446,21 +470,43 @@ function escHTML(str) {
   return d.innerHTML;
 }
 
+const filtresParChip = {
+  tous: {},
+  terrain: { typeBien: 'terrain' },
+  logement: { typeBien: 'logement' },
+  location: { typeTransaction: 'location' },
+  titre_foncier: { statutJuridique: 'titre_foncier' },
+  bail: { statutJuridique: 'bail' }
+};
+// Lit le chip actuellement sélectionné dans le DOM plutôt que de garder une variable
+// séparée à synchroniser à la main : la barre de recherche texte et les chips filtrent
+// ensemble la même liste, il faut donc pouvoir combiner "chip actif" + "texte tapé" à
+// tout moment (à chaque frappe, sans attendre un nouveau clic sur un chip).
+function filtreChipCourant() {
+  const chipActif = document.querySelector('.chip[data-filtre].on');
+  return (chipActif && filtresParChip[chipActif.dataset.filtre]) || {};
+}
+function rafraichirListeRecherche() {
+  const inputRecherche = document.getElementById('rechercheZoneInput');
+  chargerTerrains({ ...filtreChipCourant(), texte: inputRecherche ? inputRecherche.value : '' });
+}
+
 document.querySelectorAll('.chip[data-filtre]').forEach(chip => {
   chip.addEventListener('click', () => {
     document.querySelectorAll('.chip[data-filtre]').forEach(c => c.classList.remove('on'));
     chip.classList.add('on');
-    const f = chip.dataset.filtre;
-    const filtresParChip = {
-      tous: {},
-      terrain: { typeBien: 'terrain' },
-      logement: { typeBien: 'logement' },
-      location: { typeTransaction: 'location' },
-      titre_foncier: { statutJuridique: 'titre_foncier' },
-      bail: { statutJuridique: 'bail' }
-    };
-    chargerTerrains(filtresParChip[f] || {});
+    rafraichirListeRecherche();
   });
+});
+
+// Barre de recherche "Zone, ville, quartier…" de l'onglet Explorer : avant ce correctif
+// c'était un simple <div> décoratif sans <input> à l'intérieur, donc taper dedans n'avait
+// strictement aucun effet. Léger débounce pour ne pas relancer une requête Firestore à
+// chaque frappe de touche.
+let debounceRechercheZone = null;
+surEvenement('rechercheZoneInput', 'input', () => {
+  clearTimeout(debounceRechercheZone);
+  debounceRechercheZone = setTimeout(rafraichirListeRecherche, 250);
 });
 
 // ===== FICHE TERRAIN =====
@@ -559,8 +605,15 @@ surEvenement('btnSolliciterNotaire', 'click', () => {
 });
 
 // ===== PUBLIER =====
+// Empêche qu'un double-clic / double-tap sur "Publier l'annonce" (ou un clic
+// pendant que l'envoi précédent est encore en cours, ex. réseau lent) ne crée
+// deux fois la même annonce : on bloque toute nouvelle soumission tant qu'une
+// est déjà en cours, et on désactive visuellement le bouton pendant ce temps.
+let publicationEnCours = false;
 surEvenement('formPublier', 'submit', (e) => {
   e.preventDefault();
+  if (publicationEnCours) return;
+
   const errEl = document.getElementById('publierError');
   errEl.classList.remove('show');
 
@@ -582,6 +635,12 @@ surEvenement('formPublier', 'submit', (e) => {
   const fichier = document.getElementById('pFichier').files[0] || null;
   const idEnEdition = terrainEnEditionId;
 
+  const submitBtn = document.getElementById('publierSubmitBtn');
+  const texteBoutonOriginal = submitBtn.textContent;
+  publicationEnCours = true;
+  submitBtn.disabled = true;
+  submitBtn.textContent = idEnEdition ? 'Modification…' : 'Publication…';
+
   const action = idEnEdition
     ? modifierTerrain(idEnEdition, data, fichier)
     : publierTerrain(data, fichier, []);
@@ -595,6 +654,13 @@ surEvenement('formPublier', 'submit', (e) => {
   }).catch(err => {
     errEl.textContent = err.message;
     errEl.classList.add('show');
+  }).finally(() => {
+    // Que la publication ait réussi ou échoué, on redonne la main : le
+    // formulaire est réutilisé pour la prochaine annonce, le bouton doit
+    // donc redevenir cliquable et reprendre son texte d'origine.
+    publicationEnCours = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = texteBoutonOriginal;
   });
 });
 
@@ -604,6 +670,40 @@ surEvenement('pFichier', 'change', (e) => {
 });
 
 // ===== MESSAGES =====
+
+// Une conversation est "non lue" pour un utilisateur si le dernier message a été
+// posté après la dernière fois où cet utilisateur a ouvert le fil (luPar.<uid>).
+// Absence de luPar pour cet utilisateur => jamais ouvert => non lue.
+function estConversationNonLue(c, uid) {
+  if (!c.dernierMessageAt || typeof c.dernierMessageAt.toMillis !== 'function') return false;
+  const lu = c.luPar && c.luPar[uid];
+  if (!lu || typeof lu.toMillis !== 'function') return true;
+  return c.dernierMessageAt.toMillis() > lu.toMillis();
+}
+
+// Petit point rouge sur l'icône Messages de la barre du bas, visible sur tout
+// l'écran (pas seulement quand on est sur l'onglet Messages). Démarré à la
+// connexion, arrêté à la déconnexion — indépendant de unsubConversations
+// ci-dessous qui, lui, ne tourne que pendant que l'onglet Messages est ouvert.
+let unsubBadgeConversations = null;
+function demarrerEcouteBadgeMessages() {
+  if (unsubBadgeConversations) unsubBadgeConversations();
+  unsubBadgeConversations = mesConversations((convs) => {
+    const badge = document.getElementById('messagesNavBadge');
+    if (!badge || !auth.currentUser) return;
+    const uid = auth.currentUser.uid;
+    const nonLues = convs.some(c => estConversationNonLue(c, uid));
+    badge.style.display = nonLues ? 'block' : 'none';
+  }, (err) => {
+    console.error('Erreur badge messages :', err);
+  });
+}
+function arreterEcouteBadgeMessages() {
+  if (unsubBadgeConversations) { unsubBadgeConversations(); unsubBadgeConversations = null; }
+  const badge = document.getElementById('messagesNavBadge');
+  if (badge) badge.style.display = 'none';
+}
+
 let unsubConversations = null;
 function chargerConversations() {
   const container = document.getElementById('listeConversations');
@@ -617,14 +717,18 @@ function chargerConversations() {
       container.innerHTML = '<div class="empty-state">Aucune conversation pour le moment.</div>';
       return;
     }
-    container.innerHTML = convs.map(c => `
-      <div class="conv" data-id="${c.id}">
+    const uid = auth.currentUser.uid;
+    container.innerHTML = convs.map(c => {
+      const nonLue = estConversationNonLue(c, uid);
+      return `
+      <div class="conv${nonLue ? ' conv-non-lu' : ''}" data-id="${c.id}">
         <div class="avatar">${initiales('Contact')}</div>
         <div>
-          <div class="name">Conversation</div>
+          <div class="name">Conversation${nonLue ? ' <span class="dot-non-lu"></span>' : ''}</div>
           <div class="last">${escHTML(c.dernierMessage || 'Nouvelle conversation')}</div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     container.querySelectorAll('.conv').forEach(el => {
       el.addEventListener('click', () => ouvrirChat(el.dataset.id, 'Conversation'));
     });
@@ -648,6 +752,10 @@ function ouvrirChat(convId, titre) {
   // écouteurs des précédentes actifs : un nouveau message arrivant dans une ancienne
   // conversation pouvait alors écraser à tort le fil actuellement affiché.
   if (unsubChat) unsubChat();
+
+  // On marque le fil comme lu dès son ouverture : ça retire le point non-lu dans la
+  // liste des conversations et met à jour le badge de la barre du bas.
+  marquerConversationLue(convId).catch(err => console.error('Erreur marquerConversationLue :', err));
 
   unsubChat = ecouterMessages(convId, (messages) => {
     thread.innerHTML = messages.map(m => `
