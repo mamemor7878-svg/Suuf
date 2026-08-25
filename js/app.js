@@ -404,7 +404,7 @@ function carteTerrainHTML(t) {
 
   return `
     <div class="m-card" data-id="${t.id}">
-      <div class="m-thumb${estLogement ? ' t2' : ''}"><svg class="ic" style="width:34px;height:34px;"><use href="#${estLogement ? 'ic-doc' : 'ic-pin'}"/></svg></div>
+      <div class="m-thumb${estLogement ? ' t2' : ''}"><svg class="ic" style="width:34px;height:34px;"><use href="#${estLogement ? 'ic-doc' : 'ic-pin'}"/></svg>${photoAnnonceHTML(t)}</div>
       <div class="m-info">
         <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(sousTitre)}</div>
         <div class="m-title">${escHTML(t.titre || '')}</div>
@@ -414,6 +414,15 @@ function carteTerrainHTML(t) {
         </div>
       </div>
     </div>`;
+}
+
+// Photo de l'annonce (si un fichier image a été téléversé lors de la publication) à afficher
+// en superposition du dégradé de la vignette. En cas d'échec de chargement (le fichier est en
+// fait un PDF de titre foncier, ou l'URL a expiré), l'image se retire d'elle-même et le dégradé
+// + l'icône restent visibles dessous, sans rien casser pour les annonces sans photo.
+function photoAnnonceHTML(t) {
+  const url = t.documentsUrl && t.documentsUrl[0];
+  return url ? `<img src="${escHTML(url)}" alt="" onerror="this.remove()">` : '';
 }
 
 function labelStatut(s) {
@@ -460,12 +469,27 @@ function ouvrirTerrain(id) {
   const sheet = document.getElementById('terrainSheet');
   sheet.innerHTML = '<div class="loader">Chargement…</div>';
   document.getElementById('terrainMapContainer').style.display = 'none';
+  // La bannière (.hero-img) est un élément statique réutilisé pour chaque annonce ouverte :
+  // on retire d'abord une éventuelle photo laissée par la précédente, avant d'en poser une
+  // nouvelle plus bas une fois les données chargées.
+  const heroEl = document.querySelector('.hero-img');
+  const anciennePhoto = heroEl && heroEl.querySelector('img');
+  if (anciennePhoto) anciennePhoto.remove();
   goTo('terrain');
 
   getTerrain(id).then(t => {
     if (!t || !t.id) {
       sheet.innerHTML = '<div class="empty-state">Ce terrain est introuvable.</div>';
       return;
+    }
+    const urlPhoto = t.documentsUrl && t.documentsUrl[0];
+    if (urlPhoto && heroEl) {
+      const img = document.createElement('img');
+      img.src = urlPhoto;
+      img.alt = '';
+      img.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover;';
+      img.onerror = () => img.remove();
+      heroEl.insertBefore(img, heroEl.firstChild);
     }
     afficherCarteTerrain(t.localisation);
     const sc = t.scoreConfiance || {};
@@ -764,7 +788,7 @@ function chargerMesAnnonces() {
         : labelStatut(t.statutJuridique);
       return `
       <div class="m-card" data-id="${t.id}">
-        <div class="m-thumb${estLogement ? ' t2' : ''}"><svg class="ic" style="width:34px;height:34px;"><use href="#${estLogement ? 'ic-doc' : 'ic-pin'}"/></svg></div>
+        <div class="m-thumb${estLogement ? ' t2' : ''}"><svg class="ic" style="width:34px;height:34px;"><use href="#${estLogement ? 'ic-doc' : 'ic-pin'}"/></svg>${photoAnnonceHTML(t)}</div>
         <div class="m-info">
           <div class="m-zone">${escHTML(t.zone || '')} · ${escHTML(sousTitre)}</div>
           <div class="m-title">${escHTML(t.titre || '')}</div>
