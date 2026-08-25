@@ -120,10 +120,13 @@
 
   <!-- ===== RECHERCHE ===== -->
   <div class="screen" data-screen="recherche">
-    <div class="topbar"><h2>Trouver un terrain</h2><div class="icon-btn" id="btnNotifications"><svg class="ic"><use href="#ic-bell"/></svg></div></div>
+    <div class="topbar"><h2>Explorer</h2><div class="icon-btn" id="btnNotifications"><svg class="ic"><use href="#ic-bell"/></svg></div></div>
     <div class="search-bar"><svg class="ic"><use href="#ic-search"/></svg> Zone, ville, quartier…</div>
     <div class="chips">
       <div class="chip on" data-filtre="tous">Tous</div>
+      <div class="chip" data-filtre="terrain">Terrains</div>
+      <div class="chip" data-filtre="logement">Maisons/Appart.</div>
+      <div class="chip" data-filtre="location">Location</div>
       <div class="chip" data-filtre="titre_foncier">Titre foncier</div>
       <div class="chip" data-filtre="bail">Bail</div>
     </div>
@@ -150,29 +153,65 @@
 
   <!-- ===== PUBLIER ===== -->
   <div class="screen" data-screen="publier">
-    <div class="topbar"><h2 id="publierTitre">Publier un terrain</h2><div></div></div>
+    <div class="topbar"><h2 id="publierTitre">Publier une annonce</h2><div></div></div>
     <div class="error-msg" id="publierError"></div>
     <form class="form-block" id="formPublier">
+      <label>Type de bien</label>
+      <div class="role-picker" id="pTypeBienPicker" style="margin-bottom:16px;">
+        <div class="role-opt on" data-typebien="terrain">Terrain</div>
+        <div class="role-opt" data-typebien="logement">Maison / Appartement</div>
+      </div>
+
+      <div id="pTypeTransactionWrap" style="display:none;">
+        <label>Type de transaction</label>
+        <div class="role-picker" id="pTypeTransactionPicker" style="margin-bottom:16px;">
+          <div class="role-opt on" data-typetransaction="location">Location</div>
+          <div class="role-opt" data-typetransaction="vente">Vente</div>
+        </div>
+      </div>
+
+      <div id="pTypeLogementWrap" style="display:none;">
+        <label>Type de logement</label>
+        <div class="role-picker" id="pTypeLogementPicker" style="margin-bottom:16px;">
+          <div class="role-opt on" data-typelogement="maison">Maison</div>
+          <div class="role-opt" data-typelogement="appartement">Appartement</div>
+        </div>
+      </div>
+
       <label>Titre de l'annonce</label>
       <input id="pTitre" required placeholder="Ex : Parcelle Ngaparou 800 m²">
       <label>Zone / Ville</label>
       <input id="pZone" required placeholder="Ex : Thiès">
       <label>Superficie (m²)</label>
       <input id="pSuperficie" type="number" required placeholder="800">
-      <label>Statut juridique</label>
-      <select id="pStatut">
-        <option value="titre_foncier">Titre foncier</option>
-        <option value="bail">Bail</option>
-        <option value="non_loti">Zone non lotie</option>
-      </select>
-      <label>Prix (FCFA)</label>
+
+      <div id="pStatutWrap">
+        <label>Statut juridique</label>
+        <select id="pStatut">
+          <option value="titre_foncier">Titre foncier</option>
+          <option value="bail">Bail</option>
+          <option value="non_loti">Zone non lotie</option>
+        </select>
+      </div>
+
+      <div id="pChambresWrap" style="display:none;">
+        <label>Nombre de chambres</label>
+        <input id="pChambres" type="number" placeholder="3">
+        <label>Meublé ?</label>
+        <div class="role-picker" id="pMeublePicker" style="margin-bottom:16px;">
+          <div class="role-opt on" data-meuble="non">Non</div>
+          <div class="role-opt" data-meuble="oui">Oui</div>
+        </div>
+      </div>
+
+      <label id="pPrixLabel">Prix (FCFA)</label>
       <input id="pPrix" type="number" required placeholder="18000000">
       <label>Localisation <span style="opacity:.5; font-weight:400;">(clique sur la carte pour placer le pin)</span></label>
       <div id="pMapContainer" style="height:220px; border-radius:12px; overflow:hidden; margin-bottom:8px; border:1px solid var(--ligne);"></div>
       <div id="pMapCoords" style="font-size:12px; opacity:.55; margin-bottom:16px;">Aucune position sélectionnée</div>
       <label>Description</label>
       <textarea id="pDescription" rows="3" placeholder="Détails utiles pour un acheteur…"></textarea>
-      <label>Document du titre foncier <span style="opacity:.5; font-weight:400;">(optionnel pour l'instant)</span></label>
+      <label id="pFichierTitreLabel">Document du titre foncier <span style="opacity:.5; font-weight:400;">(optionnel pour l'instant)</span></label>
       <div class="upload-box">
         <svg class="ic"><use href="#ic-doc"/></svg>
         <span id="pFichierLabel">Glisser un fichier ou parcourir</span>
