@@ -121,7 +121,10 @@
   <!-- ===== RECHERCHE ===== -->
   <div class="screen" data-screen="recherche">
     <div class="topbar"><h2>Explorer</h2><div class="icon-btn" id="btnNotifications"><svg class="ic"><use href="#ic-bell"/></svg></div></div>
-    <div class="search-bar"><svg class="ic"><use href="#ic-search"/></svg> Zone, ville, quartier…</div>
+    <div class="search-bar">
+      <svg class="ic"><use href="#ic-search"/></svg>
+      <input id="rechercheZoneInput" type="text" placeholder="Zone, ville, quartier…" style="border:none; background:transparent; outline:none; width:100%; font-size:14px; font-family:inherit; color:var(--anthracite);">
+    </div>
     <div class="chips">
       <div class="chip on" data-filtre="tous">Tous</div>
       <div class="chip" data-filtre="terrain">Terrains</div>
@@ -351,7 +354,7 @@
   <div class="bottom-nav" id="bottomnav" style="display:none;">
     <button class="nav-item active" data-go="recherche"><svg class="ic"><use href="#ic-compass"/></svg>Explorer</button>
     <button class="nav-item" data-go="publier"><svg class="ic"><use href="#ic-stake"/></svg>Publier</button>
-    <button class="nav-item" data-go="messages"><svg class="ic"><use href="#ic-chat"/></svg>Messages</button>
+    <button class="nav-item" data-go="messages"><span class="nav-icon-wrap"><svg class="ic"><use href="#ic-chat"/></svg><span class="nav-badge" id="messagesNavBadge" style="display:none;"></span></span>Messages</button>
     <button class="nav-item" data-go="notaires"><svg class="ic"><use href="#ic-seal"/></svg>Notaires</button>
     <button class="nav-item" data-go="profil"><svg class="ic"><use href="#ic-user"/></svg>Profil</button>
   </div>
